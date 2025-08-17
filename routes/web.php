@@ -95,6 +95,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
         // System Management
+        Route::get('/cache', [AdminController::class, 'cacheManagement'])->name('cache.index');
         Route::post('/cache/clear', [AdminController::class, 'clearCache'])->name('cache.clear');
         Route::post('/cache/warmup', [AdminController::class, 'warmupCache'])->name('cache.warmup');
         Route::get('/cache/stats', [AdminController::class, 'cacheStats'])->name('cache.stats');

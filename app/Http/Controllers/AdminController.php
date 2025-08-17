@@ -219,12 +219,46 @@ class AdminController extends Controller
     }
 
     /**
+     * Show cache management dashboard
+     */
+    public function cacheManagement(Request $request)
+    {
+        try {
+            $stats = $this->getCacheStatistics();
+            $cacheKeys = $this->getCacheKeys();
+            $cacheInfo = $this->getCacheInfo();
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'stats' => $stats,
+                        'keys' => $cacheKeys,
+                        'info' => $cacheInfo
+                    ]
+                ]);
+            }
+
+            return view('admin.cache.index', compact('stats', 'cacheKeys', 'cacheInfo'));
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load cache management: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Failed to load cache management: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get cache statistics
      */
     public function cacheStats()
     {
         try {
-            $stats = $this->cacheService->getStats();
+            $stats = $this->getCacheStatistics();
 
             return response()->json([
                 'success' => true,
@@ -241,12 +275,15 @@ class AdminController extends Controller
     /**
      * System health check
      */
-    public function healthCheck()
+    public function healthCheck(Request $request)
     {
         $health = [
             'database' => $this->checkDatabaseHealth(),
             'cache' => $this->checkCacheHealth(),
             'storage' => $this->checkStorageHealth(),
+            'queue' => $this->checkQueueHealth(),
+            'disk_space' => $this->checkDiskSpace(),
+            'memory_usage' => $this->getMemoryUsage(),
             'overall' => 'healthy'
         ];
 
@@ -256,11 +293,30 @@ class AdminController extends Controller
             $health['overall'] = 'warning';
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $health,
-            'timestamp' => now()->toISOString()
-        ]);
+        // Add detailed information
+        $systemInfo = [
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+            'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+            'database_version' => $this->getDatabaseVersion(),
+            'timezone' => config('app.timezone'),
+            'environment' => app()->environment(),
+            'debug_mode' => config('app.debug'),
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $health,
+                'system_info' => $systemInfo,
+                'timestamp' => now()->toISOString()
+            ]);
+        }
+
+        return view('admin.health', compact('health', 'systemInfo'));
     }
 
     /**
@@ -312,23 +368,337 @@ class AdminController extends Controller
     /**
      * Get system information
      */
-    public function systemInfo()
+    public function systemInfo(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'php_version' => PHP_VERSION,
-                'laravel_version' => app()->version(),
-                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-                'database_version' => $this->getDatabaseVersion(),
-                'timezone' => config('app.timezone'),
-                'environment' => app()->environment(),
-                'debug_mode' => config('app.debug'),
-                'memory_limit' => ini_get('memory_limit'),
-                'max_execution_time' => ini_get('max_execution_time'),
-                'upload_max_filesize' => ini_get('upload_max_filesize'),
+        $systemInfo = [
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+            'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+            'database_version' => $this->getDatabaseVersion(),
+            'timezone' => config('app.timezone'),
+            'environment' => app()->environment(),
+            'debug_mode' => config('app.debug'),
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+        ];
+
+        // Add extended system information
+        $extendedInfo = [
+            'php_extensions' => get_loaded_extensions(),
+            'server_info' => [
+                'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? 'N/A',
+                'server_name' => $_SERVER['SERVER_NAME'] ?? 'N/A',
+                'server_port' => $_SERVER['SERVER_PORT'] ?? 'N/A',
+                'https' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+            ],
+            'laravel_config' => [
+                'app_name' => config('app.name'),
+                'app_url' => config('app.url'),
+                'cache_driver' => config('cache.default'),
+                'session_driver' => config('session.driver'),
+                'queue_connection' => config('queue.default'),
+                'mail_driver' => config('mail.default'),
+            ],
+            'database_info' => [
+                'connection' => config('database.default'),
+                'host' => config('database.connections.' . config('database.default') . '.host'),
+                'database' => config('database.connections.' . config('database.default') . '.database'),
+                'port' => config('database.connections.' . config('database.default') . '.port'),
+            ],
+            'disk_usage' => $this->getDiskUsage(),
+            'php_ini' => [
+                'post_max_size' => ini_get('post_max_size'),
+                'max_input_vars' => ini_get('max_input_vars'),
+                'default_timezone' => ini_get('date.timezone'),
+                'error_reporting' => ini_get('error_reporting'),
+                'display_errors' => ini_get('display_errors'),
             ]
-        ]);
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $systemInfo,
+                'extended' => $extendedInfo
+            ]);
+        }
+
+        return view('admin.system-info', compact('systemInfo', 'extendedInfo'));
+    }
+
+    /**
+     * Check queue health
+     */
+    private function checkQueueHealth()
+    {
+        try {
+            // Check if there are failed jobs
+            $failedJobs = DB::table('failed_jobs')->count();
+            if ($failedJobs > 10) {
+                return 'warning';
+            }
+            return 'healthy';
+        } catch (\Exception $e) {
+            return 'error';
+        }
+    }
+
+    /**
+     * Check disk space
+     */
+    private function checkDiskSpace()
+    {
+        try {
+            $bytes = disk_free_space('/');
+            $gb = round($bytes / 1024 / 1024 / 1024, 2);
+            
+            if ($gb < 1) {
+                return 'error';
+            } elseif ($gb < 5) {
+                return 'warning';
+            }
+            
+            return 'healthy';
+        } catch (\Exception $e) {
+            return 'error';
+        }
+    }
+
+    /**
+     * Get memory usage
+     */
+    private function getMemoryUsage()
+    {
+        $usage = memory_get_usage(true);
+        $peak = memory_get_peak_usage(true);
+        
+        return [
+            'current' => $this->formatBytes($usage),
+            'peak' => $this->formatBytes($peak),
+            'limit' => ini_get('memory_limit')
+        ];
+    }
+
+    /**
+     * Format bytes to human readable
+     */
+    private function formatBytes($bytes, $precision = 2)
+    {
+        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+
+        return round($bytes, $precision) . ' ' . $units[$i];
+    }
+
+    /**
+     * Get disk usage information
+     */
+    private function getDiskUsage()
+    {
+        try {
+            $totalSpace = disk_total_space('/');
+            $freeSpace = disk_free_space('/');
+            $usedSpace = $totalSpace - $freeSpace;
+
+            return [
+                'total' => $this->formatBytes($totalSpace),
+                'used' => $this->formatBytes($usedSpace),
+                'free' => $this->formatBytes($freeSpace),
+                'usage_percentage' => $totalSpace > 0 ? round(($usedSpace / $totalSpace) * 100, 2) : 0
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total' => 'N/A',
+                'used' => 'N/A',
+                'free' => 'N/A',
+                'usage_percentage' => 0
+            ];
+        }
+    }
+
+    /**
+     * Get cache statistics
+     */
+    private function getCacheStatistics()
+    {
+        $driver = config('cache.default');
+        $stats = [
+            'driver' => $driver,
+            'status' => 'unknown',
+            'total_keys' => 0,
+            'memory_usage' => 'N/A',
+            'hit_rate' => 'N/A',
+            'uptime' => 'N/A'
+        ];
+
+        try {
+            // Test cache connectivity
+            cache()->put('cache_test', 'test', 10);
+            $testResult = cache()->get('cache_test');
+            cache()->forget('cache_test');
+            
+            $stats['status'] = ($testResult === 'test') ? 'connected' : 'error';
+
+            // Get cache keys count (approximation)
+            if ($driver === 'redis') {
+                $stats = array_merge($stats, $this->getRedisStats());
+            } elseif ($driver === 'memcached') {
+                $stats = array_merge($stats, $this->getMemcachedStats());
+            } else {
+                $stats['total_keys'] = $this->getFileCacheCount();
+            }
+        } catch (\Exception $e) {
+            $stats['status'] = 'error';
+            $stats['error'] = $e->getMessage();
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Get Redis cache statistics
+     */
+    private function getRedisStats()
+    {
+        try {
+            $redis = app('redis')->connection();
+            $info = $redis->info();
+            
+            return [
+                'total_keys' => $redis->dbsize(),
+                'memory_usage' => $this->formatBytes($info['used_memory'] ?? 0),
+                'hit_rate' => isset($info['keyspace_hits'], $info['keyspace_misses']) 
+                    ? round(($info['keyspace_hits'] / ($info['keyspace_hits'] + $info['keyspace_misses'])) * 100, 2) . '%'
+                    : 'N/A',
+                'uptime' => isset($info['uptime_in_seconds']) ? $this->formatUptime($info['uptime_in_seconds']) : 'N/A'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total_keys' => 'N/A',
+                'memory_usage' => 'N/A',
+                'hit_rate' => 'N/A',
+                'uptime' => 'N/A'
+            ];
+        }
+    }
+
+    /**
+     * Get Memcached statistics
+     */
+    private function getMemcachedStats()
+    {
+        try {
+            $memcached = app('memcached.connector')->connect(config('cache.stores.memcached.servers'));
+            $stats = $memcached->getStats();
+            $serverStats = reset($stats);
+
+            return [
+                'total_keys' => $serverStats['curr_items'] ?? 0,
+                'memory_usage' => $this->formatBytes($serverStats['bytes'] ?? 0),
+                'hit_rate' => isset($serverStats['get_hits'], $serverStats['get_misses'])
+                    ? round(($serverStats['get_hits'] / ($serverStats['get_hits'] + $serverStats['get_misses'])) * 100, 2) . '%'
+                    : 'N/A',
+                'uptime' => isset($serverStats['uptime']) ? $this->formatUptime($serverStats['uptime']) : 'N/A'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total_keys' => 'N/A',
+                'memory_usage' => 'N/A',
+                'hit_rate' => 'N/A',
+                'uptime' => 'N/A'
+            ];
+        }
+    }
+
+    /**
+     * Get file cache count (approximation)
+     */
+    private function getFileCacheCount()
+    {
+        try {
+            $cachePath = storage_path('framework/cache/data');
+            if (!is_dir($cachePath)) {
+                return 0;
+            }
+            
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($cachePath));
+            $count = 0;
+            foreach ($iterator as $file) {
+                if ($file->isFile()) {
+                    $count++;
+                }
+            }
+            return $count;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get cache keys
+     */
+    private function getCacheKeys()
+    {
+        $driver = config('cache.default');
+        $keys = [];
+
+        try {
+            if ($driver === 'redis') {
+                $redis = app('redis')->connection();
+                $allKeys = $redis->keys('*');
+                
+                // Limit to first 100 keys for performance
+                $keys = array_slice($allKeys, 0, 100);
+                $keys = array_map(function($key) use ($redis) {
+                    $ttl = $redis->ttl($key);
+                    return [
+                        'key' => $key,
+                        'ttl' => $ttl > 0 ? $ttl : 'No expiry',
+                        'type' => $redis->type($key)
+                    ];
+                }, $keys);
+            }
+        } catch (\Exception $e) {
+            // Return empty array on error
+        }
+
+        return $keys;
+    }
+
+    /**
+     * Get cache information
+     */
+    private function getCacheInfo()
+    {
+        return [
+            'default_driver' => config('cache.default'),
+            'prefix' => config('cache.prefix'),
+            'stores' => array_keys(config('cache.stores')),
+            'serialization' => 'PHP Native',
+            'compression' => 'None'
+        ];
+    }
+
+    /**
+     * Format uptime seconds to human readable
+     */
+    private function formatUptime($seconds)
+    {
+        $days = floor($seconds / 86400);
+        $hours = floor(($seconds % 86400) / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+
+        if ($days > 0) {
+            return "{$days}d {$hours}h {$minutes}m";
+        } elseif ($hours > 0) {
+            return "{$hours}h {$minutes}m";
+        } else {
+            return "{$minutes}m";
+        }
     }
 
     /**

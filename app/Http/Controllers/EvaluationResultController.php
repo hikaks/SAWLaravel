@@ -12,9 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 use Barryvdh\DomPDF\Facade\Pdf;
-// Excel export temporarily disabled - not compatible with Laravel 12
-// use App\Exports\SawResultsExport;
-// use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SawResultsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EvaluationResultController extends Controller
 {
@@ -433,22 +432,12 @@ class EvaluationResultController extends Controller
             }
 
             $criterias = Criteria::orderBy('weight', 'desc')->get();
+            
+            $filename = "hasil-ranking-saw-{$period}-" . date('Y-m-d-His') . '.xlsx';
 
-            $html = view('exports.excel.saw-results', [
-                'results' => $results,
-                'period' => $period,
-                'criterias' => $criterias
-            ])->render();
-
-            $filename = "hasil-ranking-saw-{$period}-" . date('Y-m-d-His') . '.xls';
-
-            return response($html)
-                ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
-                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
-                ->header('Pragma', 'no-cache')
-                ->header('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
-                ->header('Expires', '0');
+            return Excel::download(new SawResultsExport($results, $period, $criterias), $filename);
         } catch (\Exception $e) {
+            Log::error('SAW Results Excel export failed: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal mengexport Excel: ' . $e->getMessage());
         }
