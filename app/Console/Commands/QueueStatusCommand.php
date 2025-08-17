@@ -265,34 +265,42 @@ class QueueStatusCommand extends Command
         $startTime = time();
         $lastStats = null;
 
-        while (true) {
-            $currentStats = $this->getQueueStatistics();
+        try {
+            while (true) {
+                $currentStats = $this->getQueueStatistics();
 
-            // Only show if stats changed
-            if ($lastStats !== $currentStats) {
-                $this->output->write("\033[2J\033[H"); // Clear screen
+                // Only show if stats changed
+                if ($lastStats !== $currentStats) {
+                    $this->output->write("\033[2J\033[H"); // Clear screen
 
-                $this->info('🔄 QUEUE MONITORING - ' . date('Y-m-d H:i:s'));
-                $this->line('');
+                    $this->info('🔄 QUEUE MONITORING - ' . date('Y-m-d H:i:s'));
+                    $this->line('');
 
-                $this->table(
-                    ['Queue', 'Pending', 'Running', 'Completed', 'Failed'],
-                    [
-                        ['high', $currentStats['high']['pending'], $currentStats['high']['running'], $currentStats['high']['completed'], $currentStats['high']['failed']],
-                        ['default', $currentStats['default']['pending'], $currentStats['default']['running'], $currentStats['default']['completed'], $currentStats['default']['failed']],
-                        ['low', $currentStats['low']['pending'], $currentStats['low']['running'], $currentStats['low']['completed'], $currentStats['low']['failed']],
-                    ]
-                );
+                    $this->table(
+                        ['Queue', 'Pending', 'Running', 'Completed', 'Failed'],
+                        [
+                            ['high', $currentStats['high']['pending'], $currentStats['high']['running'], $currentStats['high']['completed'], $currentStats['high']['failed']],
+                            ['default', $currentStats['default']['pending'], $currentStats['default']['running'], $currentStats['default']['completed'], $currentStats['default']['failed']],
+                            ['low', $currentStats['low']['pending'], $currentStats['low']['running'], $currentStats['low']['completed'], $currentStats['low']['failed']],
+                        ]
+                    );
 
-                $this->line('');
-                $this->info("📊 Total: {$currentStats['total']['pending']} pending, {$currentStats['total']['running']} running, {$currentStats['total']['completed']} completed, {$currentStats['total']['failed']} failed");
-                $this->line("⏱️  Uptime: " . $this->formatUptime(time() - $startTime));
+                    $this->line('');
+                    $this->info("📊 Total: {$currentStats['total']['pending']} pending, {$currentStats['total']['running']} running, {$currentStats['total']['completed']} completed, {$currentStats['total']['failed']} failed");
+                    $this->line("⏱️  Uptime: " . $this->formatUptime(time() - $startTime));
 
-                $lastStats = $currentStats;
+                    $lastStats = $currentStats;
+                }
+
+                sleep(2); // Update every 2 seconds
             }
-
-            sleep(2); // Update every 2 seconds
+        } catch (\Exception $e) {
+            $this->error('❌ Monitoring interrupted: ' . $e->getMessage());
+            return Command::FAILURE;
         }
+
+        // This line will never be reached, but satisfies the return requirement
+        return Command::SUCCESS;
     }
 
     /**

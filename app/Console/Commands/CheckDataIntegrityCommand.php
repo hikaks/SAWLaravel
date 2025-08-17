@@ -40,7 +40,7 @@ class CheckDataIntegrityCommand extends Command
 
         $this->info("\n📊 Summary:");
         $this->info("Issues found: {$this->issuesFound}");
-        
+
         if ($this->option('fix')) {
             $this->info("Issues fixed: {$this->issuesFixed}");
         }
@@ -57,26 +57,26 @@ class CheckDataIntegrityCommand extends Command
     private function checkCriteriaWeights(): void
     {
         $this->line("Checking criteria weights...");
-        
+
         $totalWeight = Criteria::sum('weight');
-        
+
         if ($totalWeight != 100) {
             $this->issuesFound++;
             $this->error("❌ Criteria weights total {$totalWeight}% (should be 100%)");
-            
+
             if ($this->option('fix')) {
                 // Simple fix: distribute weight evenly
                 $criteriaCount = Criteria::count();
                 if ($criteriaCount > 0) {
                     $equalWeight = floor(100 / $criteriaCount);
                     $remainder = 100 % $criteriaCount;
-                    
+
                     $criterias = Criteria::all();
                     foreach ($criterias as $index => $criteria) {
                         $weight = $equalWeight + ($index < $remainder ? 1 : 0);
                         $criteria->update(['weight' => $weight]);
                     }
-                    
+
                     $this->issuesFixed++;
                     $this->info("  ✓ Fixed: Redistributed weights evenly");
                 }
@@ -89,13 +89,13 @@ class CheckDataIntegrityCommand extends Command
     private function checkOrphanedEvaluations(): void
     {
         $this->line("Checking for orphaned evaluations...");
-        
+
         $orphanedByEmployee = Evaluation::whereNotExists(function ($query) {
             $query->select(DB::raw(1))
                   ->from('employees')
                   ->whereColumn('employees.id', 'evaluations.employee_id');
         })->count();
-        
+
         $orphanedByCriteria = Evaluation::whereNotExists(function ($query) {
             $query->select(DB::raw(1))
                   ->from('criterias')
@@ -105,14 +105,14 @@ class CheckDataIntegrityCommand extends Command
         if ($orphanedByEmployee > 0) {
             $this->issuesFound++;
             $this->error("❌ Found {$orphanedByEmployee} evaluations with invalid employee_id");
-            
+
             if ($this->option('fix')) {
                 Evaluation::whereNotExists(function ($query) {
                     $query->select(DB::raw(1))
                           ->from('employees')
                           ->whereColumn('employees.id', 'evaluations.employee_id');
                 })->delete();
-                
+
                 $this->issuesFixed++;
                 $this->info("  ✓ Fixed: Deleted orphaned evaluations");
             }
@@ -121,14 +121,14 @@ class CheckDataIntegrityCommand extends Command
         if ($orphanedByCriteria > 0) {
             $this->issuesFound++;
             $this->error("❌ Found {$orphanedByCriteria} evaluations with invalid criteria_id");
-            
+
             if ($this->option('fix')) {
                 Evaluation::whereNotExists(function ($query) {
                     $query->select(DB::raw(1))
                           ->from('criterias')
                           ->whereColumn('criterias.id', 'evaluations.criteria_id');
                 })->delete();
-                
+
                 $this->issuesFixed++;
                 $this->info("  ✓ Fixed: Deleted orphaned evaluations");
             }
@@ -142,27 +142,27 @@ class CheckDataIntegrityCommand extends Command
     private function checkIncompleteEvaluations(): void
     {
         $this->line("Checking for incomplete evaluations...");
-        
+
         $periods = Evaluation::distinct('evaluation_period')->pluck('evaluation_period');
         $totalEmployees = Employee::count();
         $totalCriteria = Criteria::count();
         $expectedPerPeriod = $totalEmployees * $totalCriteria;
-        
+
         foreach ($periods as $period) {
             $actualCount = Evaluation::where('evaluation_period', $period)->count();
-            
+
             if ($actualCount < $expectedPerPeriod) {
                 $this->issuesFound++;
                 $missing = $expectedPerPeriod - $actualCount;
                 $this->warn("⚠️  Period {$period}: Missing {$missing} evaluations ({$actualCount}/{$expectedPerPeriod})");
-                
+
                 // Show which employees/criteria are missing
                 $existingCombos = Evaluation::where('evaluation_period', $period)
                     ->select('employee_id', 'criteria_id')
                     ->get()
                     ->map(fn($e) => "{$e->employee_id}-{$e->criteria_id}")
                     ->toArray();
-                
+
                 $missingCount = 0;
                 foreach (Employee::all() as $employee) {
                     foreach (Criteria::all() as $criteria) {
@@ -175,13 +175,13 @@ class CheckDataIntegrityCommand extends Command
                         }
                     }
                 }
-                
+
                 if ($missingCount > 5) {
                     $this->line("    ... and " . ($missingCount - 5) . " more");
                 }
             }
         }
-        
+
         if ($this->issuesFound === 0) {
             $this->info("  ✓ All evaluation periods are complete");
         }
@@ -190,7 +190,7 @@ class CheckDataIntegrityCommand extends Command
     private function checkDuplicateEvaluations(): void
     {
         $this->line("Checking for duplicate evaluations...");
-        
+
         $duplicates = DB::table('evaluations')
             ->select('employee_id', 'criteria_id', 'evaluation_period', DB::raw('COUNT(*) as count'))
             ->groupBy('employee_id', 'criteria_id', 'evaluation_period')
@@ -200,13 +200,13 @@ class CheckDataIntegrityCommand extends Command
         if ($duplicates->count() > 0) {
             $this->issuesFound++;
             $this->error("❌ Found {$duplicates->count()} duplicate evaluation combinations");
-            
+
             foreach ($duplicates as $duplicate) {
                 $employee = Employee::find($duplicate->employee_id);
                 $criteria = Criteria::find($duplicate->criteria_id);
-                $this->line("    {$employee->name ?? 'Unknown'} - {$criteria->name ?? 'Unknown'} - {$duplicate->evaluation_period} ({$duplicate->count} records)");
+                $this->line("    " . ($employee->name ?? 'Unknown') . " - " . ($criteria->name ?? 'Unknown') . " - {$duplicate->evaluation_period} ({$duplicate->count} records)");
             }
-            
+
             if ($this->option('fix')) {
                 foreach ($duplicates as $duplicate) {
                     // Keep the latest record, delete others
@@ -215,11 +215,11 @@ class CheckDataIntegrityCommand extends Command
                         'criteria_id' => $duplicate->criteria_id,
                         'evaluation_period' => $duplicate->evaluation_period,
                     ])->orderBy('created_at', 'desc')->get();
-                    
+
                     // Delete all except the first (latest)
                     $evaluations->skip(1)->each->delete();
                 }
-                
+
                 $this->issuesFixed++;
                 $this->info("  ✓ Fixed: Kept latest records, deleted duplicates");
             }
@@ -231,7 +231,7 @@ class CheckDataIntegrityCommand extends Command
     private function checkInvalidScores(): void
     {
         $this->line("Checking for invalid scores...");
-        
+
         $invalidScores = Evaluation::where('score', '<', 1)
             ->orWhere('score', '>', 100)
             ->count();
@@ -239,12 +239,12 @@ class CheckDataIntegrityCommand extends Command
         if ($invalidScores > 0) {
             $this->issuesFound++;
             $this->error("❌ Found {$invalidScores} evaluations with invalid scores (must be 1-100)");
-            
+
             if ($this->option('fix')) {
                 // Fix scores that are out of range
                 Evaluation::where('score', '<', 1)->update(['score' => 1]);
                 Evaluation::where('score', '>', 100)->update(['score' => 100]);
-                
+
                 $this->issuesFixed++;
                 $this->info("  ✓ Fixed: Clamped scores to valid range (1-100)");
             }
@@ -256,46 +256,46 @@ class CheckDataIntegrityCommand extends Command
     private function checkEvaluationResults(): void
     {
         $this->line("Checking evaluation results consistency...");
-        
+
         $periods = EvaluationResult::distinct('evaluation_period')->pluck('evaluation_period');
-        
+
         foreach ($periods as $period) {
             $resultsCount = EvaluationResult::where('evaluation_period', $period)->count();
             $employeesCount = Employee::count();
-            
+
             if ($resultsCount != $employeesCount) {
                 $this->issuesFound++;
                 $this->warn("⚠️  Period {$period}: Results count ({$resultsCount}) doesn't match employees count ({$employeesCount})");
             }
-            
+
             // Check if rankings are sequential
             $rankings = EvaluationResult::where('evaluation_period', $period)
                 ->orderBy('ranking')
                 ->pluck('ranking')
                 ->toArray();
-            
+
             $expectedRankings = range(1, count($rankings));
-            
+
             if ($rankings !== $expectedRankings) {
                 $this->issuesFound++;
                 $this->warn("⚠️  Period {$period}: Rankings are not sequential");
-                
+
                 if ($this->option('fix')) {
                     // Recalculate rankings
                     $results = EvaluationResult::where('evaluation_period', $period)
                         ->orderByDesc('total_score')
                         ->get();
-                    
+
                     foreach ($results as $index => $result) {
                         $result->update(['ranking' => $index + 1]);
                     }
-                    
+
                     $this->issuesFixed++;
                     $this->info("  ✓ Fixed: Recalculated rankings for period {$period}");
                 }
             }
         }
-        
+
         if ($this->issuesFound === 0) {
             $this->info("  ✓ All evaluation results are consistent");
         }
