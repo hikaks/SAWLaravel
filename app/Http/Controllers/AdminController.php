@@ -241,12 +241,15 @@ class AdminController extends Controller
     /**
      * System health check
      */
-    public function healthCheck()
+    public function healthCheck(Request $request)
     {
         $health = [
             'database' => $this->checkDatabaseHealth(),
             'cache' => $this->checkCacheHealth(),
             'storage' => $this->checkStorageHealth(),
+            'queue' => $this->checkQueueHealth(),
+            'disk_space' => $this->checkDiskSpace(),
+            'memory_usage' => $this->getMemoryUsage(),
             'overall' => 'healthy'
         ];
 
@@ -256,11 +259,30 @@ class AdminController extends Controller
             $health['overall'] = 'warning';
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $health,
-            'timestamp' => now()->toISOString()
-        ]);
+        // Add detailed information
+        $systemInfo = [
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+            'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+            'database_version' => $this->getDatabaseVersion(),
+            'timezone' => config('app.timezone'),
+            'environment' => app()->environment(),
+            'debug_mode' => config('app.debug'),
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $health,
+                'system_info' => $systemInfo,
+                'timestamp' => now()->toISOString()
+            ]);
+        }
+
+        return view('admin.health', compact('health', 'systemInfo'));
     }
 
     /**
@@ -312,23 +334,156 @@ class AdminController extends Controller
     /**
      * Get system information
      */
-    public function systemInfo()
+    public function systemInfo(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'php_version' => PHP_VERSION,
-                'laravel_version' => app()->version(),
-                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-                'database_version' => $this->getDatabaseVersion(),
-                'timezone' => config('app.timezone'),
-                'environment' => app()->environment(),
-                'debug_mode' => config('app.debug'),
-                'memory_limit' => ini_get('memory_limit'),
-                'max_execution_time' => ini_get('max_execution_time'),
-                'upload_max_filesize' => ini_get('upload_max_filesize'),
+        $systemInfo = [
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+            'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+            'database_version' => $this->getDatabaseVersion(),
+            'timezone' => config('app.timezone'),
+            'environment' => app()->environment(),
+            'debug_mode' => config('app.debug'),
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+        ];
+
+        // Add extended system information
+        $extendedInfo = [
+            'php_extensions' => get_loaded_extensions(),
+            'server_info' => [
+                'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? 'N/A',
+                'server_name' => $_SERVER['SERVER_NAME'] ?? 'N/A',
+                'server_port' => $_SERVER['SERVER_PORT'] ?? 'N/A',
+                'https' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+            ],
+            'laravel_config' => [
+                'app_name' => config('app.name'),
+                'app_url' => config('app.url'),
+                'cache_driver' => config('cache.default'),
+                'session_driver' => config('session.driver'),
+                'queue_connection' => config('queue.default'),
+                'mail_driver' => config('mail.default'),
+            ],
+            'database_info' => [
+                'connection' => config('database.default'),
+                'host' => config('database.connections.' . config('database.default') . '.host'),
+                'database' => config('database.connections.' . config('database.default') . '.database'),
+                'port' => config('database.connections.' . config('database.default') . '.port'),
+            ],
+            'disk_usage' => $this->getDiskUsage(),
+            'php_ini' => [
+                'post_max_size' => ini_get('post_max_size'),
+                'max_input_vars' => ini_get('max_input_vars'),
+                'default_timezone' => ini_get('date.timezone'),
+                'error_reporting' => ini_get('error_reporting'),
+                'display_errors' => ini_get('display_errors'),
             ]
-        ]);
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $systemInfo,
+                'extended' => $extendedInfo
+            ]);
+        }
+
+        return view('admin.system-info', compact('systemInfo', 'extendedInfo'));
+    }
+
+    /**
+     * Check queue health
+     */
+    private function checkQueueHealth()
+    {
+        try {
+            // Check if there are failed jobs
+            $failedJobs = DB::table('failed_jobs')->count();
+            if ($failedJobs > 10) {
+                return 'warning';
+            }
+            return 'healthy';
+        } catch (\Exception $e) {
+            return 'error';
+        }
+    }
+
+    /**
+     * Check disk space
+     */
+    private function checkDiskSpace()
+    {
+        try {
+            $bytes = disk_free_space('/');
+            $gb = round($bytes / 1024 / 1024 / 1024, 2);
+            
+            if ($gb < 1) {
+                return 'error';
+            } elseif ($gb < 5) {
+                return 'warning';
+            }
+            
+            return 'healthy';
+        } catch (\Exception $e) {
+            return 'error';
+        }
+    }
+
+    /**
+     * Get memory usage
+     */
+    private function getMemoryUsage()
+    {
+        $usage = memory_get_usage(true);
+        $peak = memory_get_peak_usage(true);
+        
+        return [
+            'current' => $this->formatBytes($usage),
+            'peak' => $this->formatBytes($peak),
+            'limit' => ini_get('memory_limit')
+        ];
+    }
+
+    /**
+     * Format bytes to human readable
+     */
+    private function formatBytes($bytes, $precision = 2)
+    {
+        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+
+        return round($bytes, $precision) . ' ' . $units[$i];
+    }
+
+    /**
+     * Get disk usage information
+     */
+    private function getDiskUsage()
+    {
+        try {
+            $totalSpace = disk_total_space('/');
+            $freeSpace = disk_free_space('/');
+            $usedSpace = $totalSpace - $freeSpace;
+
+            return [
+                'total' => $this->formatBytes($totalSpace),
+                'used' => $this->formatBytes($usedSpace),
+                'free' => $this->formatBytes($freeSpace),
+                'usage_percentage' => $totalSpace > 0 ? round(($usedSpace / $totalSpace) * 100, 2) : 0
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total' => 'N/A',
+                'used' => 'N/A',
+                'free' => 'N/A',
+                'usage_percentage' => 0
+            ];
+        }
     }
 
     /**

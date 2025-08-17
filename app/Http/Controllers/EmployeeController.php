@@ -9,9 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
-// Excel export temporarily disabled - not compatible with Laravel 12
-// use App\Exports\EmployeesExport;
-// use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\EmployeesExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class EmployeeController extends Controller
@@ -456,8 +455,33 @@ class EmployeeController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        // Excel export temporarily disabled - package compatibility issue with Laravel 12
-        return redirect()->back()
-            ->with('info', 'Excel export sedang dalam development. Silakan gunakan export PDF.');
+        try {
+            $query = Employee::query();
+            
+            // Apply filters
+            if ($request->filled('department')) {
+                $query->where('department', $request->department);
+            }
+            
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('employee_code', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+            
+            $employees = $query->orderBy('name')->get();
+            
+            $filename = 'employees-export-' . date('Y-m-d-His') . '.xlsx';
+            
+            return Excel::download(new EmployeesExport($employees), $filename);
+            
+        } catch (\Exception $e) {
+            Log::error('Employee Excel export failed: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Failed to export Excel: ' . $e->getMessage());
+        }
     }
 }
