@@ -481,8 +481,29 @@ class AdvancedAnalysisService
      */
     private function calculatePeriodChanges(array $comparison): array
     {
-        // Implementation for period-to-period change calculation
-        return [];
+        $periods = array_keys($comparison);
+        $changes = [];
+        
+        for ($i = 1; $i < count($periods); $i++) {
+            $currentPeriod = $periods[$i];
+            $previousPeriod = $periods[$i - 1];
+            
+            if (!isset($comparison[$currentPeriod]) || !isset($comparison[$previousPeriod])) {
+                continue;
+            }
+            
+            $currentStats = $comparison[$currentPeriod]['statistics'];
+            $previousStats = $comparison[$previousPeriod]['statistics'];
+            
+            $changes[$currentPeriod] = [
+                'avg_score_change' => $currentStats['avg_score'] - $previousStats['avg_score'],
+                'max_score_change' => $currentStats['max_score'] - $previousStats['max_score'],
+                'min_score_change' => $currentStats['min_score'] - $previousStats['min_score'],
+                'employee_count_change' => $currentStats['total_employees'] - $previousStats['total_employees']
+            ];
+        }
+        
+        return $changes;
     }
 
     /**
