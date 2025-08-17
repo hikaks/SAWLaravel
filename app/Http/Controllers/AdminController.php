@@ -219,12 +219,46 @@ class AdminController extends Controller
     }
 
     /**
+     * Show cache management dashboard
+     */
+    public function cacheManagement(Request $request)
+    {
+        try {
+            $stats = $this->getCacheStatistics();
+            $cacheKeys = $this->getCacheKeys();
+            $cacheInfo = $this->getCacheInfo();
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'stats' => $stats,
+                        'keys' => $cacheKeys,
+                        'info' => $cacheInfo
+                    ]
+                ]);
+            }
+
+            return view('admin.cache.index', compact('stats', 'cacheKeys', 'cacheInfo'));
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load cache management: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Failed to load cache management: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get cache statistics
      */
     public function cacheStats()
     {
         try {
-            $stats = $this->cacheService->getStats();
+            $stats = $this->getCacheStatistics();
 
             return response()->json([
                 'success' => true,
@@ -483,6 +517,187 @@ class AdminController extends Controller
                 'free' => 'N/A',
                 'usage_percentage' => 0
             ];
+        }
+    }
+
+    /**
+     * Get cache statistics
+     */
+    private function getCacheStatistics()
+    {
+        $driver = config('cache.default');
+        $stats = [
+            'driver' => $driver,
+            'status' => 'unknown',
+            'total_keys' => 0,
+            'memory_usage' => 'N/A',
+            'hit_rate' => 'N/A',
+            'uptime' => 'N/A'
+        ];
+
+        try {
+            // Test cache connectivity
+            cache()->put('cache_test', 'test', 10);
+            $testResult = cache()->get('cache_test');
+            cache()->forget('cache_test');
+            
+            $stats['status'] = ($testResult === 'test') ? 'connected' : 'error';
+
+            // Get cache keys count (approximation)
+            if ($driver === 'redis') {
+                $stats = array_merge($stats, $this->getRedisStats());
+            } elseif ($driver === 'memcached') {
+                $stats = array_merge($stats, $this->getMemcachedStats());
+            } else {
+                $stats['total_keys'] = $this->getFileCacheCount();
+            }
+        } catch (\Exception $e) {
+            $stats['status'] = 'error';
+            $stats['error'] = $e->getMessage();
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Get Redis cache statistics
+     */
+    private function getRedisStats()
+    {
+        try {
+            $redis = app('redis')->connection();
+            $info = $redis->info();
+            
+            return [
+                'total_keys' => $redis->dbsize(),
+                'memory_usage' => $this->formatBytes($info['used_memory'] ?? 0),
+                'hit_rate' => isset($info['keyspace_hits'], $info['keyspace_misses']) 
+                    ? round(($info['keyspace_hits'] / ($info['keyspace_hits'] + $info['keyspace_misses'])) * 100, 2) . '%'
+                    : 'N/A',
+                'uptime' => isset($info['uptime_in_seconds']) ? $this->formatUptime($info['uptime_in_seconds']) : 'N/A'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total_keys' => 'N/A',
+                'memory_usage' => 'N/A',
+                'hit_rate' => 'N/A',
+                'uptime' => 'N/A'
+            ];
+        }
+    }
+
+    /**
+     * Get Memcached statistics
+     */
+    private function getMemcachedStats()
+    {
+        try {
+            $memcached = app('memcached.connector')->connect(config('cache.stores.memcached.servers'));
+            $stats = $memcached->getStats();
+            $serverStats = reset($stats);
+
+            return [
+                'total_keys' => $serverStats['curr_items'] ?? 0,
+                'memory_usage' => $this->formatBytes($serverStats['bytes'] ?? 0),
+                'hit_rate' => isset($serverStats['get_hits'], $serverStats['get_misses'])
+                    ? round(($serverStats['get_hits'] / ($serverStats['get_hits'] + $serverStats['get_misses'])) * 100, 2) . '%'
+                    : 'N/A',
+                'uptime' => isset($serverStats['uptime']) ? $this->formatUptime($serverStats['uptime']) : 'N/A'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'total_keys' => 'N/A',
+                'memory_usage' => 'N/A',
+                'hit_rate' => 'N/A',
+                'uptime' => 'N/A'
+            ];
+        }
+    }
+
+    /**
+     * Get file cache count (approximation)
+     */
+    private function getFileCacheCount()
+    {
+        try {
+            $cachePath = storage_path('framework/cache/data');
+            if (!is_dir($cachePath)) {
+                return 0;
+            }
+            
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($cachePath));
+            $count = 0;
+            foreach ($iterator as $file) {
+                if ($file->isFile()) {
+                    $count++;
+                }
+            }
+            return $count;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get cache keys
+     */
+    private function getCacheKeys()
+    {
+        $driver = config('cache.default');
+        $keys = [];
+
+        try {
+            if ($driver === 'redis') {
+                $redis = app('redis')->connection();
+                $allKeys = $redis->keys('*');
+                
+                // Limit to first 100 keys for performance
+                $keys = array_slice($allKeys, 0, 100);
+                $keys = array_map(function($key) use ($redis) {
+                    $ttl = $redis->ttl($key);
+                    return [
+                        'key' => $key,
+                        'ttl' => $ttl > 0 ? $ttl : 'No expiry',
+                        'type' => $redis->type($key)
+                    ];
+                }, $keys);
+            }
+        } catch (\Exception $e) {
+            // Return empty array on error
+        }
+
+        return $keys;
+    }
+
+    /**
+     * Get cache information
+     */
+    private function getCacheInfo()
+    {
+        return [
+            'default_driver' => config('cache.default'),
+            'prefix' => config('cache.prefix'),
+            'stores' => array_keys(config('cache.stores')),
+            'serialization' => 'PHP Native',
+            'compression' => 'None'
+        ];
+    }
+
+    /**
+     * Format uptime seconds to human readable
+     */
+    private function formatUptime($seconds)
+    {
+        $days = floor($seconds / 86400);
+        $hours = floor(($seconds % 86400) / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+
+        if ($days > 0) {
+            return "{$days}d {$hours}h {$minutes}m";
+        } elseif ($hours > 0) {
+            return "{$hours}h {$minutes}m";
+        } else {
+            return "{$minutes}m";
         }
     }
 
