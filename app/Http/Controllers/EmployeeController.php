@@ -10,6 +10,8 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
 use App\Exports\EmployeesExport;
+use App\Exports\EmployeeTemplateExport;
+use App\Imports\EmployeesImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -482,6 +484,64 @@ class EmployeeController extends Controller
             Log::error('Employee Excel export failed: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Failed to export Excel: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download import template
+     */
+    public function downloadTemplate()
+    {
+        try {
+            $filename = 'employee_import_template_' . date('Y-m-d') . '.xlsx';
+            return Excel::download(new EmployeeTemplateExport(), $filename);
+            
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Failed to download template: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Import employees from Excel/CSV
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|mimes:xlsx,csv,xls|max:10240' // 10MB max
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $import = new EmployeesImport();
+            Excel::import($import, $request->file('import_file'));
+
+            $stats = $import->getStats();
+            $errors = $import->getErrors();
+
+            DB::commit();
+
+            // Clear cache after successful import
+            $this->cacheService->invalidateEmployeesCache();
+
+            $message = "Import completed! Imported: {$stats['imported']}, Skipped: {$stats['skipped']}";
+            
+            if (!empty($errors)) {
+                $message .= ", Errors: {$stats['errors']}";
+                return redirect()->back()
+                    ->with('warning', $message)
+                    ->with('import_errors', $errors);
+            }
+
+            return redirect()->back()
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 }

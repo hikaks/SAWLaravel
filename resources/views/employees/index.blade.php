@@ -14,6 +14,21 @@
             <i class="fas fa-sync-alt me-1"></i>
             {{ __('Refresh') }}
         </button>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-file-import me-1"></i>
+                {{ __('Import') }}
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ route('employees.import-template') }}">
+                    <i class="fas fa-download me-2"></i>{{ __('Download Template') }}
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" onclick="showImportModal()">
+                    <i class="fas fa-upload me-2"></i>{{ __('Upload Data') }}
+                </a></li>
+            </ul>
+        </div>
         <a href="{{ route('employees.create') }}" class="btn btn-primary">
             <i class="fas fa-user-plus me-2"></i>
             {{ __('Add Employee') }}
@@ -199,6 +214,49 @@
                     {{ __('Close') }}
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="fas fa-file-import me-2"></i>{{ __('Import Employees') }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('employees.import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="import_file" class="form-label">{{ __('Select Excel/CSV File') }}</label>
+                        <input type="file" class="form-control" id="import_file" name="import_file" 
+                               accept=".xlsx,.xls,.csv" required>
+                        <div class="form-text">
+                            {{ __('Supported formats: Excel (.xlsx, .xls) and CSV (.csv). Maximum file size: 10MB') }}
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>{{ __('Important:') }}</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>{{ __('Download the template first to see the required format') }}</li>
+                            <li>{{ __('Employee codes must be unique') }}</li>
+                            <li>{{ __('Email addresses must be valid and unique') }}</li>
+                            <li>{{ __('Existing employees will be updated if found') }}</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload me-2"></i>{{ __('Import Data') }}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -456,6 +514,24 @@ function refreshTable() {
         title: '{{ __("Data refreshed successfully") }}'
     });
 }
+
+function showImportModal() {
+    $('#importModal').modal('show');
+}
+
+// Handle import form submission
+$('#importForm').on('submit', function(e) {
+    const submitBtn = $(this).find('button[type="submit"]');
+    const originalText = submitBtn.html();
+    
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>{{ __("Importing...") }}');
+    
+    // Reset on form reset
+    $('#importModal').on('hidden.bs.modal', function() {
+        submitBtn.prop('disabled', false).html(originalText);
+        $('#import_file').val('');
+    });
+});
 
 function deleteEmployee(id) {
     Swal.fire({

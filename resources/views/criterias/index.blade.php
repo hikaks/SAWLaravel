@@ -112,6 +112,21 @@
                         <i class="fas fa-sync-alt me-1"></i>
                         Refresh
                     </button>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-file-import me-1"></i>
+                            Import
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ route('criterias.import-template') }}">
+                                <i class="fas fa-download me-2"></i>Download Template
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="showImportModal()">
+                                <i class="fas fa-upload me-2"></i>Upload Data
+                            </a></li>
+                        </ul>
+                    </div>
                     @if($totalWeight < 100)
                     <a href="{{ route('criterias.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>
@@ -359,6 +374,50 @@
         </div>
     </div>
 </div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="fas fa-file-import me-2"></i>Import Criteria
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('criterias.import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="import_file" class="form-label">Select Excel/CSV File</label>
+                        <input type="file" class="form-control" id="import_file" name="import_file" 
+                               accept=".xlsx,.xls,.csv" required>
+                        <div class="form-text">
+                            Supported formats: Excel (.xlsx, .xls) and CSV (.csv). Maximum file size: 10MB
+                        </div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Download the template first to see the required format</li>
+                            <li>Total weight of all criteria must equal 100%</li>
+                            <li>Type must be either "benefit" or "cost"</li>
+                            <li>Existing criteria will be updated if found</li>
+                            <li><strong>This will replace ALL existing criteria!</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload me-2"></i>Import Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -543,6 +602,24 @@ function refreshTable() {
         showSuccess('Data successfully refreshed');
     });
 }
+
+function showImportModal() {
+    $('#importModal').modal('show');
+}
+
+// Handle import form submission
+$('#importForm').on('submit', function(e) {
+    const submitBtn = $(this).find('button[type="submit"]');
+    const originalText = submitBtn.html();
+    
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Importing...');
+    
+    // Reset on form reset
+    $('#importModal').on('hidden.bs.modal', function() {
+        submitBtn.prop('disabled', false).html(originalText);
+        $('#import_file').val('');
+    });
+});
 
 // Restore functionality for criteria
 function showRestoreModal() {

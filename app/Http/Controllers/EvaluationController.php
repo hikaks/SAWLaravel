@@ -9,10 +9,13 @@ use App\Services\SAWCalculationService;
 use App\Services\CacheService;
 use App\Jobs\ProcessSAWCalculationJob;
 use App\Http\Requests\StoreEvaluationRequest;
+use App\Imports\EvaluationsImport;
+use App\Exports\EvaluationTemplateExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EvaluationController extends Controller
 {
@@ -654,6 +657,64 @@ class EvaluationController extends Controller
                 'success' => false,
                 'message' => 'Failed to permanently delete evaluations: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Download import template
+     */
+    public function downloadTemplate()
+    {
+        try {
+            $filename = 'evaluation_import_template_' . date('Y-m-d') . '.xlsx';
+            return Excel::download(new EvaluationTemplateExport(), $filename);
+            
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Failed to download template: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Import evaluations from Excel/CSV
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'import_file' => 'required|mimes:xlsx,csv,xls|max:10240' // 10MB max
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $import = new EvaluationsImport();
+            Excel::import($import, $request->file('import_file'));
+
+            $stats = $import->getStats();
+            $errors = $import->getErrors();
+
+            DB::commit();
+
+            // Clear cache after successful import
+            $this->cacheService->invalidateSAWResults();
+
+            $message = "Import completed! Imported: {$stats['imported']}, Skipped: {$stats['skipped']}";
+            
+            if (!empty($errors)) {
+                $message .= ", Errors: {$stats['errors']}";
+                return redirect()->back()
+                    ->with('warning', $message)
+                    ->with('import_errors', $errors);
+            }
+
+            return redirect()->back()
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 }
