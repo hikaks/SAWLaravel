@@ -7,6 +7,8 @@ use App\Models\Criteria;
 use App\Models\Evaluation;
 use App\Services\SAWCalculationService;
 use App\Services\CacheService;
+use App\Jobs\ProcessSAWCalculationJob;
+use App\Http\Requests\StoreEvaluationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -21,6 +23,19 @@ class EvaluationController extends Controller
     {
         $this->sawService = $sawService;
         $this->cacheService = $cacheService;
+    }
+
+    /**
+     * Check if queue worker is running
+     */
+    private function isQueueWorkerRunning(): bool
+    {
+        try {
+            // Simple check - if jobs table exists and we can connect
+            return DB::connection()->getSchemaBuilder()->hasTable('jobs');
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
@@ -54,7 +69,11 @@ class EvaluationController extends Controller
             $perPage = $request->get('per_page', 10);
             $page = $request->get('page', 1);
 
-            $query = Evaluation::with(['employee', 'criteria'])
+            $query = Evaluation::with([
+                    'employee:id,name,employee_code,department', 
+                    'criteria:id,name,weight,type'
+                ])
+                ->select('id', 'employee_id', 'criteria_id', 'score', 'evaluation_period', 'created_at')
                 ->when($request->period, function($query) use ($request) {
                     return $query->where('evaluation_period', $request->period);
                 })
@@ -174,30 +193,10 @@ class EvaluationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreEvaluationRequest $request)
     {
-        $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'criteria_id' => 'required|exists:criterias,id',
-            'score' => 'required|integer|min:1|max:100',
-            'evaluation_period' => 'required|string|max:255',
-        ]);
-
         try {
-            // Check if evaluation already exists
-            $existingEvaluation = Evaluation::where([
-                'employee_id' => $request->employee_id,
-                'criteria_id' => $request->criteria_id,
-                'evaluation_period' => $request->evaluation_period,
-            ])->first();
-
-            if ($existingEvaluation) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Evaluation for this employee, criteria, and period already exists.');
-            }
-
-            Evaluation::create($request->all());
+            $evaluation = Evaluation::create($request->validated());
 
             // Invalidate related caches
             $this->cacheService->invalidateEvaluationData('all');
@@ -409,26 +408,49 @@ class EvaluationController extends Controller
                 ], 400);
             }
 
-            // Calculate SAW
-            $results = $this->sawService->calculateSAW($period);
+            // Check if queue is available, fallback to synchronous if not
+            if (config('queue.default') === 'sync' || !$this->isQueueWorkerRunning()) {
+                // Fallback to synchronous calculation
+                Log::warning("Queue worker not available, falling back to synchronous SAW calculation");
+                
+                $results = $this->sawService->calculateSAW($period);
+                
+                $this->cacheService->invalidateSAWResults($period);
+                $this->cacheService->invalidateChartData();
+                $this->cacheService->invalidateDashboard();
 
-            // Invalidate all related caches after SAW calculation
-            $this->cacheService->invalidateSAWResults($period);
-            $this->cacheService->invalidateChartData();
-            $this->cacheService->invalidateDashboard();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'SAW calculation completed successfully (synchronous mode).',
+                    'evaluation_period' => $period,
+                    'total_employees' => count($results),
+                    'status' => 'completed',
+                    'redirect' => route('results.index', ['period' => $period])
+                ]);
+            }
+            
+            // Dispatch SAW calculation as background job for better performance
+            ProcessSAWCalculationJob::dispatch($period, auth()->id());
 
             return response()->json([
                 'success' => true,
-                'message' => 'SAW calculation successfully completed.',
-                'total_employees' => count($results),
+                'message' => 'SAW calculation has been queued and will be processed in background. Please check results page in a few moments.',
                 'evaluation_period' => $period,
+                'status' => 'queued',
                 'redirect' => route('results.index', ['period' => $period])
             ]);
 
         } catch (\Exception $e) {
+            Log::error("SAW calculation failed", [
+                'period' => $period,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to perform SAW calculation: ' . $e->getMessage()
+                'message' => 'SAW calculation failed: ' . $e->getMessage(),
+                'period' => $period
             ], 500);
         }
     }

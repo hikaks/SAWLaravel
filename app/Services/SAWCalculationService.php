@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\Criteria;
 use App\Models\Evaluation;
 use App\Models\EvaluationResult;
+use App\Exceptions\SAWCalculationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -16,20 +17,39 @@ class SAWCalculationService
      */
     public function calculateSAW(string $evaluationPeriod): array
     {
+        // Set memory limit and max execution time for large datasets
+        ini_set('memory_limit', '512M');
+        set_time_limit(300); // 5 minutes max
+        
+        $startTime = microtime(true);
+        
         try {
             DB::beginTransaction();
 
-            // Step 1: Get all data
-            $employees = Employee::all();
-            $criterias = Criteria::all();
-            $evaluations = Evaluation::with(['employee', 'criteria'])
+            // Step 1: Get all data with memory optimization
+            $employees = Employee::select('id', 'name')->get();
+            $criterias = Criteria::select('id', 'name', 'weight', 'type')->get();
+            $evaluations = Evaluation::with([
+                    'employee:id,name', 
+                    'criteria:id,name,weight,type'
+                ])
+                ->select('id', 'employee_id', 'criteria_id', 'score')
                 ->where('evaluation_period', $evaluationPeriod)
                 ->get();
 
             // Step 2: Validate data completeness
+            if ($employees->isEmpty()) {
+                throw SAWCalculationException::noEmployeesFound($evaluationPeriod);
+            }
+            
+            if ($criterias->isEmpty()) {
+                throw SAWCalculationException::noCriteriaFound();
+            }
+            
             $expectedEvaluations = $employees->count() * $criterias->count();
             if ($evaluations->count() !== $expectedEvaluations) {
-                throw new \Exception("Data evaluasi tidak lengkap. Dibutuhkan {$expectedEvaluations} evaluasi, ditemukan {$evaluations->count()}");
+                $validation = $this->validateEvaluationPeriod($evaluationPeriod);
+                throw SAWCalculationException::insufficientData($validation);
             }
 
             // Step 3: Group evaluations by criteria for normalization
@@ -63,7 +83,7 @@ class SAWCalculationService
                 }
             }
 
-            // Step 5: Calculate weighted scores (SAW)
+            // Step 5: Calculate weighted scores (SAW) with memory optimization
             $sawResults = [];
             foreach ($employees as $employee) {
                 $totalScore = 0;
@@ -80,7 +100,13 @@ class SAWCalculationService
                     'total_score' => round($totalScore, 4),
                     'normalized_scores' => $normalizedScores[$employee->id] ?? [],
                 ];
+                
+                // Free memory for processed employee
+                unset($normalizedScores[$employee->id]);
             }
+            
+            // Clear variables to free memory
+            unset($employees, $criterias, $evaluations, $evaluationsByCriteria);
 
             // Step 6: Sort by total score (descending) and assign rankings
             usort($sawResults, function ($a, $b) {
@@ -100,10 +126,14 @@ class SAWCalculationService
             $this->saveResults($sawResults, $evaluationPeriod);
 
             DB::commit();
+            
+            $executionTime = microtime(true) - $startTime;
 
             Log::info("SAW calculation completed for period: {$evaluationPeriod}", [
                 'total_employees' => count($sawResults),
-                'evaluation_period' => $evaluationPeriod
+                'evaluation_period' => $evaluationPeriod,
+                'execution_time' => round($executionTime, 2) . ' seconds',
+                'memory_peak' => memory_get_peak_usage(true) / 1024 / 1024 . ' MB'
             ]);
 
             return $sawResults;
@@ -123,25 +153,32 @@ class SAWCalculationService
      */
     private function saveResults(array $sawResults, string $evaluationPeriod): void
     {
-        // Prepare data for upsert
-        $data = [];
-        foreach ($sawResults as $result) {
-            $data[] = [
-                'employee_id' => $result['employee_id'],
-                'total_score' => $result['total_score'],
-                'ranking' => $result['ranking'],
-                'evaluation_period' => $evaluationPeriod,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
+        // Process in chunks to avoid memory issues with large datasets
+        $chunks = array_chunk($sawResults, 100);
+        
+        foreach ($chunks as $chunk) {
+            $data = [];
+            foreach ($chunk as $result) {
+                $data[] = [
+                    'employee_id' => $result['employee_id'],
+                    'total_score' => $result['total_score'],
+                    'ranking' => $result['ranking'],
+                    'evaluation_period' => $evaluationPeriod,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
 
-        // Use upsert to handle duplicates gracefully
-        EvaluationResult::upsert(
-            $data,
-            ['employee_id', 'evaluation_period'], // Unique keys
-            ['total_score', 'ranking', 'updated_at'] // Fields to update
-        );
+            // Use upsert to handle duplicates gracefully
+            EvaluationResult::upsert(
+                $data,
+                ['employee_id', 'evaluation_period'], // Unique keys
+                ['total_score', 'ranking', 'updated_at'] // Fields to update
+            );
+            
+            // Free memory
+            unset($data);
+        }
     }
 
     /**
