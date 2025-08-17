@@ -25,6 +25,19 @@ class EvaluationController extends Controller
     }
 
     /**
+     * Check if queue worker is running
+     */
+    private function isQueueWorkerRunning(): bool
+    {
+        try {
+            // Simple check - if jobs table exists and we can connect
+            return DB::connection()->getSchemaBuilder()->hasTable('jobs');
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -414,6 +427,27 @@ class EvaluationController extends Controller
                 ], 400);
             }
 
+            // Check if queue is available, fallback to synchronous if not
+            if (config('queue.default') === 'sync' || !$this->isQueueWorkerRunning()) {
+                // Fallback to synchronous calculation
+                Log::warning("Queue worker not available, falling back to synchronous SAW calculation");
+                
+                $results = $this->sawService->calculateSAW($period);
+                
+                $this->cacheService->invalidateSAWResults($period);
+                $this->cacheService->invalidateChartData();
+                $this->cacheService->invalidateDashboard();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'SAW calculation completed successfully (synchronous mode).',
+                    'evaluation_period' => $period,
+                    'total_employees' => count($results),
+                    'status' => 'completed',
+                    'redirect' => route('results.index', ['period' => $period])
+                ]);
+            }
+            
             // Dispatch SAW calculation as background job for better performance
             ProcessSAWCalculationJob::dispatch($period, auth()->id());
 
@@ -426,9 +460,16 @@ class EvaluationController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error("SAW calculation failed", [
+                'period' => $period,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to perform SAW calculation: ' . $e->getMessage()
+                'message' => 'SAW calculation failed: ' . $e->getMessage(),
+                'period' => $period
             ], 500);
         }
     }

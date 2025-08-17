@@ -17,6 +17,12 @@ class SAWCalculationService
      */
     public function calculateSAW(string $evaluationPeriod): array
     {
+        // Set memory limit and max execution time for large datasets
+        ini_set('memory_limit', '512M');
+        set_time_limit(300); // 5 minutes max
+        
+        $startTime = microtime(true);
+        
         try {
             DB::beginTransaction();
 
@@ -77,7 +83,7 @@ class SAWCalculationService
                 }
             }
 
-            // Step 5: Calculate weighted scores (SAW)
+            // Step 5: Calculate weighted scores (SAW) with memory optimization
             $sawResults = [];
             foreach ($employees as $employee) {
                 $totalScore = 0;
@@ -94,7 +100,13 @@ class SAWCalculationService
                     'total_score' => round($totalScore, 4),
                     'normalized_scores' => $normalizedScores[$employee->id] ?? [],
                 ];
+                
+                // Free memory for processed employee
+                unset($normalizedScores[$employee->id]);
             }
+            
+            // Clear variables to free memory
+            unset($employees, $criterias, $evaluations, $evaluationsByCriteria);
 
             // Step 6: Sort by total score (descending) and assign rankings
             usort($sawResults, function ($a, $b) {
@@ -114,10 +126,14 @@ class SAWCalculationService
             $this->saveResults($sawResults, $evaluationPeriod);
 
             DB::commit();
+            
+            $executionTime = microtime(true) - $startTime;
 
             Log::info("SAW calculation completed for period: {$evaluationPeriod}", [
                 'total_employees' => count($sawResults),
-                'evaluation_period' => $evaluationPeriod
+                'evaluation_period' => $evaluationPeriod,
+                'execution_time' => round($executionTime, 2) . ' seconds',
+                'memory_peak' => memory_get_peak_usage(true) / 1024 / 1024 . ' MB'
             ]);
 
             return $sawResults;
