@@ -8,6 +8,7 @@ use App\Models\Evaluation;
 use App\Services\SAWCalculationService;
 use App\Services\CacheService;
 use App\Jobs\ProcessSAWCalculationJob;
+use App\Http\Requests\StoreEvaluationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -192,30 +193,10 @@ class EvaluationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreEvaluationRequest $request)
     {
-        $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'criteria_id' => 'required|exists:criterias,id',
-            'score' => 'required|integer|min:1|max:100',
-            'evaluation_period' => 'required|string|max:255',
-        ]);
-
         try {
-            // Check if evaluation already exists
-            $existingEvaluation = Evaluation::where([
-                'employee_id' => $request->employee_id,
-                'criteria_id' => $request->criteria_id,
-                'evaluation_period' => $request->evaluation_period,
-            ])->first();
-
-            if ($existingEvaluation) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Evaluation for this employee, criteria, and period already exists.');
-            }
-
-            Evaluation::create($request->all());
+            $evaluation = Evaluation::create($request->validated());
 
             // Invalidate related caches
             $this->cacheService->invalidateEvaluationData('all');
