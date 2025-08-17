@@ -121,6 +121,34 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/jobs/clear-all', [App\Http\Controllers\Admin\JobMonitorController::class, 'clearAll'])->name('jobs.clear-all');
 });
 
+// Advanced Analysis Routes
+Route::middleware(['auth'])->prefix('analysis')->name('analysis.')->group(function () {
+    // Dashboard
+    Route::get('/', [App\Http\Controllers\AnalysisController::class, 'index'])->name('index');
+    
+    // API Endpoints for AJAX requests
+    Route::post('/sensitivity', [App\Http\Controllers\AnalysisController::class, 'sensitivityAnalysis'])->name('sensitivity');
+    Route::post('/what-if', [App\Http\Controllers\AnalysisController::class, 'whatIfScenarios'])->name('what-if');
+    Route::post('/comparison', [App\Http\Controllers\AnalysisController::class, 'multiPeriodComparison'])->name('comparison');
+    Route::post('/statistics', [App\Http\Controllers\AnalysisController::class, 'advancedStatistics'])->name('statistics');
+    Route::post('/forecast', [App\Http\Controllers\AnalysisController::class, 'performanceForecast'])->name('forecast');
+    
+    // View Routes
+    Route::get('/sensitivity', [App\Http\Controllers\AnalysisController::class, 'sensitivityView'])->name('sensitivity.view');
+    Route::get('/what-if', [App\Http\Controllers\AnalysisController::class, 'whatIfView'])->name('what-if.view');
+    Route::get('/comparison', [App\Http\Controllers\AnalysisController::class, 'comparisonView'])->name('comparison.view');
+    Route::get('/forecast', [App\Http\Controllers\AnalysisController::class, 'forecastView'])->name('forecast.view');
+    
+    // Utility Routes
+    Route::get('/periods', [App\Http\Controllers\AnalysisController::class, 'getAvailablePeriods'])->name('periods');
+    Route::get('/criterias', [App\Http\Controllers\AnalysisController::class, 'getCriterias'])->name('criterias');
+    
+    // Export & Configuration
+    Route::post('/export', [App\Http\Controllers\AnalysisController::class, 'exportAnalysis'])->name('export');
+    Route::get('/history', [App\Http\Controllers\AnalysisController::class, 'getAnalysisHistory'])->name('history');
+    Route::post('/save-config', [App\Http\Controllers\AnalysisController::class, 'saveConfiguration'])->name('save-config');
+});
+
 // Report Download Routes
 Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function () {
     Route::get('/download', [App\Http\Controllers\ReportController::class, 'download'])->name('download');

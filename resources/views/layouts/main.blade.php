@@ -520,6 +520,50 @@
                         </div>
                     </div>
 
+                    <div class="nav-section">
+                        <div class="nav-section-title">{{ __('Advanced Analytics') }}</div>
+                        <div class="nav-item">
+                            <a href="{{ route('analysis.index') }}" class="nav-link {{ request()->routeIs('analysis.index') ? 'active' : '' }}">
+                                <div class="nav-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                {{ __('Analysis Dashboard') }}
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a href="{{ route('analysis.sensitivity.view') }}" class="nav-link {{ request()->routeIs('analysis.sensitivity*') ? 'active' : '' }}">
+                                <div class="nav-icon">
+                                    <i class="fas fa-balance-scale"></i>
+                                </div>
+                                {{ __('Sensitivity Analysis') }}
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a href="{{ route('analysis.what-if.view') }}" class="nav-link {{ request()->routeIs('analysis.what-if*') ? 'active' : '' }}">
+                                <div class="nav-icon">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                {{ __('What-if Scenarios') }}
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a href="{{ route('analysis.comparison.view') }}" class="nav-link {{ request()->routeIs('analysis.comparison*') ? 'active' : '' }}">
+                                <div class="nav-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                {{ __('Multi-period Comparison') }}
+                            </a>
+                        </div>
+                        <div class="nav-item">
+                            <a href="{{ route('analysis.forecast.view') }}" class="nav-link {{ request()->routeIs('analysis.forecast*') ? 'active' : '' }}">
+                                <div class="nav-icon">
+                                    <i class="fas fa-chart-area"></i>
+                                </div>
+                                {{ __('Performance Forecasting') }}
+                            </a>
+                        </div>
+                    </div>
+
                     @if(auth()->user()->canManage())
                     <div class="nav-section">
                         <div class="nav-section-title">{{ __('User Management') }}</div>
