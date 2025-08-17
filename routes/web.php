@@ -147,6 +147,9 @@ Route::middleware(['auth'])->prefix('analysis')->name('analysis.')->group(functi
     Route::post('/export', [App\Http\Controllers\AnalysisController::class, 'exportAnalysis'])->name('export');
     Route::get('/history', [App\Http\Controllers\AnalysisController::class, 'getAnalysisHistory'])->name('history');
     Route::post('/save-config', [App\Http\Controllers\AnalysisController::class, 'saveConfiguration'])->name('save-config');
+    
+    // Debug Route
+    Route::get('/debug', [App\Http\Controllers\AnalysisController::class, 'debugView'])->name('debug');
 });
 
 // Report Download Routes

@@ -19,6 +19,10 @@
             <i class="fas fa-download me-1"></i>
             {{ __('Export Dashboard') }}
         </button>
+        <a href="{{ route('analysis.debug') }}" class="btn btn-outline-danger">
+            <i class="fas fa-bug me-1"></i>
+            {{ __('Debug') }}
+        </a>
     </div>
 </div>
 

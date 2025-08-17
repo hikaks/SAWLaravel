@@ -443,4 +443,36 @@ class AnalysisController extends Controller
             ], 500);
         }
     }
+    
+    /**
+     * Debug view for troubleshooting
+     */
+    public function debugView()
+    {
+        $availablePeriods = Evaluation::select('evaluation_period')
+            ->distinct()
+            ->orderByDesc('evaluation_period')
+            ->pluck('evaluation_period');
+
+        $criterias = Criteria::orderBy('weight', 'desc')->get();
+        $employees = Employee::orderBy('name')->get();
+        
+        // Get evaluation counts per period
+        $periodCounts = [];
+        foreach ($availablePeriods as $period) {
+            $periodCounts[$period] = Evaluation::where('evaluation_period', $period)->count();
+        }
+        
+        $totalEvaluations = Evaluation::count();
+        $totalResults = EvaluationResult::count();
+
+        return view('analysis.debug', compact(
+            'availablePeriods', 
+            'criterias', 
+            'employees', 
+            'periodCounts',
+            'totalEvaluations',
+            'totalResults'
+        ));
+    }
 }
