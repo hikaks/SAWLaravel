@@ -126,3 +126,4 @@ Log::info('Analysis results:', $results);
 
 ### Issue 4: "AJAX request failed"
 **Solution:** Check CSRF token and route availability
+
