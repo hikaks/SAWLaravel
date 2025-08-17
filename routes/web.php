@@ -48,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
     Route::get('/employees/export/pdf', [EmployeeController::class, 'exportPdf'])->name('employees.export-pdf');
     Route::get('/employees/export/excel', [EmployeeController::class, 'exportExcel'])->name('employees.export-excel');
+    Route::get('/employees/import/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.import-template');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
     Route::post('/employees/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
     Route::post('/employees/force-delete', [EmployeeController::class, 'forceDelete'])->name('employees.force-delete');
 
@@ -55,6 +57,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('criterias', CriteriaController::class);
     Route::get('/criterias/total-weight', [CriteriaController::class, 'getTotalWeight'])->name('criterias.total-weight');
     Route::post('/criterias/validate-weight', [CriteriaController::class, 'validateWeight'])->name('criterias.validate-weight');
+    Route::get('/criterias/import/template', [CriteriaController::class, 'downloadTemplate'])->name('criterias.import-template');
+    Route::post('/criterias/import', [CriteriaController::class, 'import'])->name('criterias.import');
     Route::post('/criterias/restore', [CriteriaController::class, 'restore'])->name('criterias.restore');
     Route::post('/criterias/force-delete', [CriteriaController::class, 'forceDelete'])->name('criterias.force-delete');
 
@@ -65,6 +69,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/evaluations/generate-results', [EvaluationController::class, 'generateResults'])->name('evaluations.generate-results');
     Route::get('/evaluations/periods', [EvaluationController::class, 'getPeriods'])->name('evaluations.periods');
     Route::get('/evaluations/matrix', [EvaluationController::class, 'getEvaluationMatrix'])->name('evaluations.matrix');
+    Route::get('/evaluations/import/template', [EvaluationController::class, 'downloadTemplate'])->name('evaluations.import-template');
+    Route::post('/evaluations/import', [EvaluationController::class, 'import'])->name('evaluations.import');
     Route::post('/evaluations/restore', [EvaluationController::class, 'restore'])->name('evaluations.restore');
     Route::post('/evaluations/force-delete', [EvaluationController::class, 'forceDelete'])->name('evaluations.force-delete');
 

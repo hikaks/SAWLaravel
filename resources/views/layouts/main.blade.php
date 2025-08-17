@@ -618,6 +618,23 @@
                         </div>
                     @endif
 
+                    @if(session('import_errors'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h6><i class="fas fa-exclamation-circle me-2"></i>Import Errors:</h6>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                @foreach(session('import_errors') as $error)
+                                    <div class="mb-2">
+                                        <strong>Row {{ $error['row'] }}:</strong> {{ $error['error'] }}
+                                        @if(isset($error['data']) && is_array($error['data']))
+                                            <br><small class="text-muted">Data: {{ json_encode($error['data']) }}</small>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
                     @if(session('info'))
                         <div class="alert alert-info alert-dismissible fade show" role="alert">
                             <i class="fas fa-info-circle me-2"></i>

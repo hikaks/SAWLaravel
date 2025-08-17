@@ -25,6 +25,21 @@
                         <i class="fas fa-sync-alt me-2"></i>
                         Refresh
                     </button>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-file-import me-1"></i>
+                            Import
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ route('evaluations.import-template') }}">
+                                <i class="fas fa-download me-2"></i>Download Template
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="showImportModal()">
+                                <i class="fas fa-upload me-2"></i>Upload Data
+                            </a></li>
+                        </ul>
+                    </div>
                     <a href="{{ route('evaluations.create') }}" class="btn btn-success">
                         <i class="fas fa-plus me-2"></i>
                         Add Evaluation
@@ -228,6 +243,50 @@
         </div>
     </div>
 </div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="fas fa-file-import me-2"></i>Import Evaluations
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('evaluations.import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="import_file" class="form-label">Select Excel/CSV File</label>
+                        <input type="file" class="form-control" id="import_file" name="import_file" 
+                               accept=".xlsx,.xls,.csv" required>
+                        <div class="form-text">
+                            Supported formats: Excel (.xlsx, .xls) and CSV (.csv). Maximum file size: 10MB
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Important:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Download the template first to see the required format</li>
+                            <li>Employee codes and criteria names must exist in the system</li>
+                            <li>Score must be between 0 and 100</li>
+                            <li>Evaluation period format: YYYY-MM (e.g., {{ date('Y-m') }})</li>
+                            <li>Existing evaluations will be updated if found</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload me-2"></i>Import Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -333,6 +392,24 @@ function refreshTable() {
     window.currentPage = 1; // Reset to first page
     loadEvaluations();
 }
+
+function showImportModal() {
+    $('#importModal').modal('show');
+}
+
+// Handle import form submission
+$('#importForm').on('submit', function(e) {
+    const submitBtn = $(this).find('button[type="submit"]');
+    const originalText = submitBtn.html();
+    
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Importing...');
+    
+    // Reset on form reset
+    $('#importModal').on('hidden.bs.modal', function() {
+        submitBtn.prop('disabled', false).html(originalText);
+        $('#import_file').val('');
+    });
+});
 
 function updatePagination(pagination) {
     if (!pagination) {
