@@ -67,15 +67,15 @@
                                         <span class="text-muted">({{ $criteria->type }})</span>
                                     </label>
                                     <div class="input-group">
-                                        <input type="range" class="form-range me-2" 
-                                               min="1" max="50" 
-                                               value="{{ $criteria->weight }}" 
+                                        <input type="range" class="form-range me-2"
+                                               min="1" max="50"
+                                               value="{{ $criteria->weight }}"
                                                id="weight_{{ $criteria->id }}"
                                                oninput="updateWeightValue({{ $criteria->id }})">
-                                        <input type="number" class="form-control" 
+                                        <input type="number" class="form-control"
                                                style="width: 80px;"
-                                               min="1" max="100" 
-                                               value="{{ $criteria->weight }}" 
+                                               min="1" max="100"
+                                               value="{{ $criteria->weight }}"
                                                id="weightValue_{{ $criteria->id }}"
                                                onchange="updateWeightSlider({{ $criteria->id }})">
                                         <span class="input-group-text">%</span>
@@ -307,6 +307,11 @@ let analysisResults = null;
 let currentView = 'table';
 
 $(document).ready(function() {
+    // Debug logging
+    console.log('Sensitivity analysis script loaded');
+    console.log('Chart.js available:', typeof Chart !== 'undefined');
+    console.log('jQuery available:', typeof $ !== 'undefined');
+
     // Initialize form handlers
     $('#analysisType').change(function() {
         toggleCustomWeights();
@@ -314,17 +319,19 @@ $(document).ready(function() {
 
     $('#sensitivityForm').submit(function(e) {
         e.preventDefault();
+        console.log('Form submitted, running sensitivity analysis...');
         runSensitivityAnalysis();
     });
 
     // Load initial data if period is selected
     if ($('#evaluationPeriod').val()) {
-        // Optional: Run default analysis
+        console.log('Initial period selected:', $('#evaluationPeriod').val());
     }
 });
 
 function toggleCustomWeights() {
     const analysisType = $('#analysisType').val();
+    console.log('Analysis type changed to:', analysisType);
     if (analysisType === 'custom') {
         $('#customWeightsSection').show();
     } else {
@@ -345,16 +352,20 @@ function updateWeightSlider(criteriaId) {
 function runSensitivityAnalysis() {
     const formData = new FormData($('#sensitivityForm')[0]);
     const analysisType = formData.get('analysis_type');
-    
+
+    console.log('Starting sensitivity analysis...');
+    console.log('Analysis type:', analysisType);
+    console.log('Evaluation period:', formData.get('evaluation_period'));
+
     // Show loading
     $('#analysisResults').hide();
     $('#loadingResults').show();
     $('#runAnalysisBtn').prop('disabled', true);
-    
+
     let requestData = {
         evaluation_period: formData.get('evaluation_period')
     };
-    
+
     // Add custom weights if selected
     if (analysisType === 'custom') {
         requestData.weight_changes = [];
@@ -364,8 +375,11 @@ function runSensitivityAnalysis() {
                 weight: parseInt($('#weightValue_{{ $criteria->id }}').val())
             });
         @endforeach
+        console.log('Custom weights:', requestData.weight_changes);
     }
-    
+
+    console.log('Sending request data:', requestData);
+
     $.ajax({
         url: '{{ route("analysis.sensitivity") }}',
         method: 'POST',
@@ -373,23 +387,30 @@ function runSensitivityAnalysis() {
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
+        beforeSend: function() {
+            console.log('AJAX request sent to:', '{{ route("analysis.sensitivity") }}');
+        },
         success: function(response) {
+            console.log('AJAX response received:', response);
             $('#loadingResults').hide();
             $('#runAnalysisBtn').prop('disabled', false);
-            
+
             if (response.success) {
                 analysisResults = response.data;
+                console.log('Analysis results loaded:', analysisResults);
                 displayAnalysisResults();
                 showSensitivitySummary();
                 showScenarioResults();
             } else {
+                console.error('Analysis failed:', response.message);
                 showError('Analysis failed: ' + (response.message || 'Unknown error'));
             }
         },
-        error: function(xhr) {
+        error: function(xhr, status, error) {
+            console.error('AJAX Error:', {xhr, status, error});
             $('#loadingResults').hide();
             $('#runAnalysisBtn').prop('disabled', false);
-            
+
             let errorMessage = 'Analysis failed';
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMessage = xhr.responseJSON.message;
@@ -400,26 +421,32 @@ function runSensitivityAnalysis() {
 }
 
 function displayAnalysisResults() {
-    if (!analysisResults) return;
-    
+    console.log('Displaying analysis results, current view:', currentView);
+    if (!analysisResults) {
+        console.error('No analysis results available');
+        return;
+    }
+
     if (currentView === 'table') {
         showResultsTable();
     } else {
         showResultsChart();
     }
-    
+
     $('#analysisResults').show();
 }
 
 function showResultsTable() {
+    console.log('Showing results table');
     currentView = 'table';
     $('#tableViewBtn').addClass('active');
     $('#chartViewBtn').removeClass('active');
-    
+
     if (!analysisResults || !analysisResults.original_results) {
+        console.error('No original results available for table view');
         return;
     }
-    
+
     let html = '<div class="table-responsive">';
     html += '<table class="table table-hover">';
     html += '<thead><tr>';
@@ -428,7 +455,7 @@ function showResultsTable() {
     html += '<th>{{ __("Original Score") }}</th>';
     html += '<th>{{ __("Actions") }}</th>';
     html += '</tr></thead><tbody>';
-    
+
     analysisResults.original_results.forEach(function(result) {
         html += `<tr>
             <td>
@@ -453,127 +480,158 @@ function showResultsTable() {
             </td>
         </tr>`;
     });
-    
+
     html += '</tbody></table></div>';
     $('#analysisResults').html(html);
+    console.log('Table view displayed successfully');
 }
 
 function showResultsChart() {
+    console.log('Showing results chart');
     currentView = 'chart';
     $('#chartViewBtn').addClass('active');
     $('#tableViewBtn').removeClass('active');
-    
+
     if (!analysisResults || !analysisResults.original_results) {
+        console.error('No original results available for chart view');
         return;
     }
-    
+
     const html = '<canvas id="sensitivityChart" width="400" height="200"></canvas>';
     $('#analysisResults').html(html);
-    
-    // Create chart
-    const ctx = document.getElementById('sensitivityChart').getContext('2d');
-    const chartData = {
-        labels: analysisResults.original_results.map(r => r.employee.name),
-        datasets: [{
-            label: '{{ __("Original Score") }}',
-            data: analysisResults.original_results.map(r => (r.total_score * 100).toFixed(2)),
-            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1
-        }]
-    };
-    
-    new Chart(ctx, {
-        type: 'bar',
-        data: chartData,
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
+
+    // Wait for canvas to be created
+    setTimeout(() => {
+        const canvas = document.getElementById('sensitivityChart');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+
+        console.log('Creating chart with data:', analysisResults.original_results);
+
+        // Create chart
+        const ctx = canvas.getContext('2d');
+        const chartData = {
+            labels: analysisResults.original_results.map(r => r.employee.name),
+            datasets: [{
+                label: '{{ __("Original Score") }}',
+                data: analysisResults.original_results.map(r => (r.total_score * 100).toFixed(2)),
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        console.log('Chart data prepared:', chartData);
+
+        try {
+            new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
                         }
                     }
                 }
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top'
-                }
-            }
+            });
+            console.log('Chart created successfully');
+        } catch (error) {
+            console.error('Error creating chart:', error);
         }
-    });
+    }, 100);
 }
 
 function showSensitivitySummary() {
+    console.log('Showing sensitivity summary');
     if (!analysisResults || !analysisResults.summary) {
+        console.error('No summary data available');
         return;
     }
-    
+
     const summary = analysisResults.summary;
     let html = '';
-    
+
     // Stability metrics
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${(summary.avg_stability_index * 100).toFixed(1)}%</div>`;
     html += '<div class="metric-label">{{ __("Average Stability") }}</div>';
     html += '</div></div>';
-    
+
     // Most sensitive scenario
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${summary.most_sensitive_scenario || 'N/A'}</div>`;
     html += '<div class="metric-label">{{ __("Most Sensitive") }}</div>';
     html += '</div></div>';
-    
+
     // Least sensitive scenario
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${summary.least_sensitive_scenario || 'N/A'}</div>`;
     html += '<div class="metric-label">{{ __("Most Stable") }}</div>';
     html += '</div></div>';
-    
+
     // Total scenarios
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${Object.keys(analysisResults.sensitivity_scenarios).length}</div>`;
     html += '<div class="metric-label">{{ __("Scenarios Analyzed") }}</div>';
     html += '</div></div>';
-    
+
     $('#summaryContent').html(html);
     $('#sensitivitySummary').show();
+    console.log('Sensitivity summary displayed successfully');
 }
 
 function showScenarioResults() {
+    console.log('Showing scenario results');
     if (!analysisResults || !analysisResults.sensitivity_scenarios) {
+        console.error('No scenario data available');
         return;
     }
-    
+
     // Populate scenario selector
     let selectorHtml = '<option value="">{{ __("Select Scenario") }}</option>';
     Object.keys(analysisResults.sensitivity_scenarios).forEach(function(scenarioName) {
         selectorHtml += `<option value="${scenarioName}">${scenarioName.replace(/_/g, ' ').toUpperCase()}</option>`;
     });
     $('#scenarioSelector').html(selectorHtml);
-    
+
     $('#scenarioResults').show();
+    console.log('Scenario results displayed successfully');
 }
 
 function showScenarioDetails() {
     const selectedScenario = $('#scenarioSelector').val();
+    console.log('Showing details for scenario:', selectedScenario);
+
     if (!selectedScenario || !analysisResults.sensitivity_scenarios[selectedScenario]) {
         $('#scenarioDetails').html('<p class="text-muted">{{ __("Select a scenario to view details") }}</p>');
         return;
     }
-    
+
     const scenario = analysisResults.sensitivity_scenarios[selectedScenario];
+    console.log('Scenario data:', scenario);
+
     let html = '';
-    
+
     // Scenario metrics
     html += '<div class="row mb-4">';
     html += '<div class="col-md-3">';
@@ -581,26 +639,26 @@ function showScenarioDetails() {
     html += `<div class="metric-value">${scenario.metrics.avg_ranking_change.toFixed(1)}</div>`;
     html += '<div class="metric-label">{{ __("Avg Rank Change") }}</div>';
     html += '</div></div>';
-    
+
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${scenario.metrics.max_ranking_change}</div>`;
     html += '<div class="metric-label">{{ __("Max Rank Change") }}</div>';
     html += '</div></div>';
-    
+
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${(scenario.metrics.stability_index * 100).toFixed(1)}%</div>`;
     html += '<div class="metric-label">{{ __("Stability Index") }}</div>';
     html += '</div></div>';
-    
+
     html += '<div class="col-md-3">';
     html += '<div class="sensitivity-metric">';
     html += `<div class="metric-value">${scenario.ranking_changes.length}</div>`;
     html += '<div class="metric-label">{{ __("Employees Affected") }}</div>';
     html += '</div></div>';
     html += '</div>';
-    
+
     // Ranking changes table
     html += '<div class="table-responsive">';
     html += '<table class="table table-hover">';
@@ -611,12 +669,12 @@ function showScenarioDetails() {
     html += '<th>{{ __("Change") }}</th>';
     html += '<th>{{ __("Score Change") }}</th>';
     html += '</tr></thead><tbody>';
-    
+
     scenario.ranking_changes.forEach(function(change) {
         let changeClass = 'unchanged';
         let changeIcon = 'fas fa-minus';
         let changeText = 'No Change';
-        
+
         if (change.ranking_change > 0) {
             changeClass = 'improved';
             changeIcon = 'fas fa-arrow-up';
@@ -626,7 +684,7 @@ function showScenarioDetails() {
             changeIcon = 'fas fa-arrow-down';
             changeText = `${change.ranking_change}`;
         }
-        
+
         html += `<tr>
             <td>${change.employee_name}</td>
             <td><span class="badge bg-secondary">#${change.original_ranking}</span></td>
@@ -639,13 +697,15 @@ function showScenarioDetails() {
             <td>${(change.score_change * 100).toFixed(2)}%</td>
         </tr>`;
     });
-    
+
     html += '</tbody></table></div>';
-    
+
     $('#scenarioDetails').html(html);
+    console.log('Scenario details displayed successfully');
 }
 
 function resetAnalysis() {
+    console.log('Resetting analysis');
     analysisResults = null;
     $('#analysisResults').html(`
         <div class="text-center py-5">
@@ -656,10 +716,11 @@ function resetAnalysis() {
     `);
     $('#sensitivitySummary').hide();
     $('#scenarioResults').hide();
-    
+
     // Reset form
     $('#sensitivityForm')[0].reset();
     $('#analysisType').change();
+    console.log('Analysis reset completed');
 }
 
 function exportResults() {
@@ -667,7 +728,7 @@ function exportResults() {
         showError('{{ __("No results to export. Please run an analysis first.") }}');
         return;
     }
-    
+
     // Implementation for export functionality
     showInfo('{{ __("Export functionality will be implemented soon.") }}');
 }
@@ -678,14 +739,14 @@ function showEmployeeDetails(employeeId) {
 }
 
 function showError(message) {
+    console.error('Error:', message);
     // Implementation depends on your notification system
-    console.error(message);
     alert('Error: ' + message);
 }
 
 function showInfo(message) {
+    console.info('Info:', message);
     // Implementation depends on your notification system
-    console.info(message);
     alert('Info: ' + message);
 }
 </script>
