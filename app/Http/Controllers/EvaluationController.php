@@ -7,6 +7,7 @@ use App\Models\Criteria;
 use App\Models\Evaluation;
 use App\Services\SAWCalculationService;
 use App\Services\CacheService;
+use App\Jobs\ProcessSAWCalculationJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -54,7 +55,11 @@ class EvaluationController extends Controller
             $perPage = $request->get('per_page', 10);
             $page = $request->get('page', 1);
 
-            $query = Evaluation::with(['employee', 'criteria'])
+            $query = Evaluation::with([
+                    'employee:id,name,employee_code,department', 
+                    'criteria:id,name,weight,type'
+                ])
+                ->select('id', 'employee_id', 'criteria_id', 'score', 'evaluation_period', 'created_at')
                 ->when($request->period, function($query) use ($request) {
                     return $query->where('evaluation_period', $request->period);
                 })
@@ -409,19 +414,14 @@ class EvaluationController extends Controller
                 ], 400);
             }
 
-            // Calculate SAW
-            $results = $this->sawService->calculateSAW($period);
-
-            // Invalidate all related caches after SAW calculation
-            $this->cacheService->invalidateSAWResults($period);
-            $this->cacheService->invalidateChartData();
-            $this->cacheService->invalidateDashboard();
+            // Dispatch SAW calculation as background job for better performance
+            ProcessSAWCalculationJob::dispatch($period, auth()->id());
 
             return response()->json([
                 'success' => true,
-                'message' => 'SAW calculation successfully completed.',
-                'total_employees' => count($results),
+                'message' => 'SAW calculation has been queued and will be processed in background. Please check results page in a few moments.',
                 'evaluation_period' => $period,
+                'status' => 'queued',
                 'redirect' => route('results.index', ['period' => $period])
             ]);
 

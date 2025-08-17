@@ -37,7 +37,8 @@ class EvaluationResultController extends Controller
             // Use cache for results if period is specified
             if ($period) {
                 $results = $this->cacheService->getSAWResults($period, function() use ($period) {
-                    return EvaluationResult::with('employee')
+                    return EvaluationResult::with('employee:id,name,employee_code,department,position')
+                        ->select('id', 'employee_id', 'total_score', 'ranking', 'evaluation_period')
                         ->where('evaluation_period', $period)
                         ->orderBy('ranking')
                         ->get();
@@ -45,7 +46,8 @@ class EvaluationResultController extends Controller
             } else {
                 // For all periods, cache with different key
                 $results = $this->cacheService->getSAWResults('all_periods', function() {
-                    return EvaluationResult::with('employee')
+                    return EvaluationResult::with('employee:id,name,employee_code,department,position')
+                        ->select('id', 'employee_id', 'total_score', 'ranking', 'evaluation_period')
                         ->orderBy('ranking')
                         ->get();
                 });
