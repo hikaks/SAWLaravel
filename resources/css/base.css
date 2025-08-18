@@ -280,7 +280,8 @@
     }
 
     .form-textarea {
-        @apply form-control resize-vertical;
+        @apply form-control;
+        resize: vertical;
     }
 
     .form-check {

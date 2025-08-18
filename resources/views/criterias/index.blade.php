@@ -4,454 +4,298 @@
 @section('page-title', 'Evaluation Criteria')
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <!-- Weight Status Card -->
-        <div class="card mb-4 border-0" style="background: linear-gradient(135deg, {{ $totalWeight == 100 ? '#10b981' : ($totalWeight < 100 ? '#f59e0b' : '#ef4444') }} 0%, {{ $totalWeight == 100 ? '#059669' : ($totalWeight < 100 ? '#d97706' : '#dc2626') }} 100%);">
-            <div class="card-body text-white">
-                <div class="row align-items-center">
-                    <div class="col-auto">
-                        <div class="d-flex align-items-center justify-content-center rounded-circle bg-white bg-opacity-20"
-                             style="width: 60px; height: 60px;">
-                            <i class="fas fa-{{ $totalWeight == 100 ? 'check-circle' : ($totalWeight < 100 ? 'exclamation-triangle' : 'times-circle') }} fa-2x"></i>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="row">
-                            <div class="col-md-8">
-                                                <h5 class="mb-2 fw-bold">Criteria Weight Status</h5>
-                <h2 class="mb-1 fw-bold">{{ $totalWeight }}/100</h2>
+<!-- Weight Status Card -->
+<div class="card mb-6 {{ $totalWeight == 100 ? 'bg-gradient-to-br from-success-500 to-success-600' : ($totalWeight < 100 ? 'bg-gradient-to-br from-warning-500 to-warning-600' : 'bg-gradient-to-br from-danger-500 to-danger-600') }} text-white overflow-hidden">
+    <div class="card-body">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+            <div class="w-15 h-15 bg-white/20 rounded-full flex items-center justify-center">
+                <i class="fas fa-{{ $totalWeight == 100 ? 'check-circle' : ($totalWeight < 100 ? 'exclamation-triangle' : 'times-circle') }} text-2xl"></i>
+            </div>
+            <div class="flex-1 text-center md:text-left">
+                <h5 class="text-xl font-bold mb-2">{{ __('Criteria Weight Status') }}</h5>
+                <h2 class="text-3xl font-bold mb-2">{{ $totalWeight }}/100</h2>
                 @if($totalWeight == 100)
-                    <p class="mb-0 opacity-90">
-                        <i class="fas fa-star me-2"></i>
-                        <strong>Perfect!</strong> Ready for SAW calculation
+                    <p class="text-white/90">
+                        <i class="fas fa-star mr-2"></i>
+                        <strong>{{ __('Perfect!') }}</strong> {{ __('Ready for SAW calculation') }}
                     </p>
                 @elseif($totalWeight < 100)
-                    <p class="mb-0 opacity-90">
-                        <i class="fas fa-plus-circle me-2"></i>
-                        <strong>{{ 100 - $totalWeight }} points more needed</strong> to reach 100%
+                    <p class="text-white/90">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        <strong>{{ 100 - $totalWeight }} {{ __('points more needed') }}</strong> {{ __('to reach 100%') }}
                     </p>
                 @else
-                    <p class="mb-0 opacity-90">
-                        <i class="fas fa-minus-circle me-2"></i>
-                        <strong>Exceeds {{ $totalWeight - 100 }} points!</strong> Need to reduce
+                    <p class="text-white/90">
+                        <i class="fas fa-minus-circle mr-2"></i>
+                        <strong>{{ __('Exceeds') }} {{ $totalWeight - 100 }} {{ __('points!') }}</strong> {{ __('Need to reduce') }}
                     </p>
                 @endif
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <div class="position-relative d-inline-block mb-3">
-                                        <svg width="80" height="80" class="circular-progress">
-                                            <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="8"/>
-                                            <circle cx="40" cy="40" r="35" fill="none" stroke="white" stroke-width="8"
-                                                    stroke-dasharray="{{ 2 * 3.14159 * 35 }}"
-                                                    stroke-dashoffset="{{ 2 * 3.14159 * 35 * (1 - min($totalWeight, 100) / 100) }}"
-                                                    stroke-linecap="round"
-                                                    transform="rotate(-90 40 40)"/>
-                                        </svg>
-                                        <div class="position-absolute top-50 start-50 translate-middle">
-                                            <div class="fs-5 fw-bold">{{ $totalWeight }}%</div>
-                                        </div>
-                                    </div>
-                                    <div class="small opacity-75">
-                                        Remaining: {{ max(0, 100 - $totalWeight) }}%
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @if($totalWeight != 100)
-                    <div class="col-auto">
-                        @if($totalWeight < 100)
-                        <x-ui.button 
-                            href="{{ route('criterias.create') }}" 
-                            variant="secondary" 
-                            size="lg" 
-                            icon="fas fa-plus"
-                            class="bg-white text-gray-800 hover:bg-gray-100 border-white">
-                            Add Criteria
-                        </x-ui.button>
-                        @else
-                        <x-ui.button 
-                            variant="ghost" 
-                            size="lg" 
-                            icon="fas fa-balance-scale"
-                            onclick="showWeightAdjustmentTips()"
-                            class="text-white border-white hover:bg-white hover:bg-opacity-20">
-                            Adjust Weight
-                        </x-ui.button>
-                        @endif
-                    </div>
-                    @endif
-                </div>
-
-                <!-- Progress Bar Alternative (Hidden on larger screens) -->
-                <div class="d-md-none mt-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="opacity-75">Progress</small>
-                        <small class="opacity-75">{{ $totalWeight }}%</small>
-                    </div>
-                    <div class="progress bg-white bg-opacity-20" style="width: 8px;">
-                        <div class="progress-bar bg-white" style="width: {{ min($totalWeight, 100) }}%"></div>
-                    </div>
-                </div>
             </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-list-check text-primary me-2"></i>
-                    Evaluation Criteria List
-                </h5>
-                <div class="flex flex-wrap gap-2">
-                    <x-ui.button 
-                        variant="outline-warning" 
-                        size="sm" 
-                        icon="fas fa-undo"
-                        onclick="showRestoreModal()" 
-                        data-bs-toggle="tooltip" 
-                        title="{{ __('Restore Deleted Criteria') }}">
-                    </x-ui.button>
-                    <x-ui.button 
-                        href="{{ route('criterias.create') }}" 
-                        variant="success" 
-                        icon="fas fa-plus">
-                        Add New Criteria
-                    </x-ui.button>
-                    <x-ui.button 
-                        variant="outline-info" 
-                        icon="fas fa-balance-scale"
-                        onclick="checkWeightStatus()"
-                        id="checkWeightBtn">
-                        Check Weight
-                    </x-ui.button>
-                    <x-ui.button 
-                        variant="outline-secondary" 
-                        icon="fas fa-sync-alt"
-                        onclick="refreshTable()"
-                        id="refreshBtn">
-                        Refresh
-                    </x-ui.button>
-                    <div class="relative inline-block">
-                        <x-ui.button 
-                            variant="success" 
-                            size="sm" 
-                            icon="fas fa-file-import"
-                            data-bs-toggle="dropdown" 
-                            aria-expanded="false"
-                            class="dropdown-toggle">
-                            Import
-                        </x-ui.button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('criterias.import-template') }}">
-                                <i class="fas fa-download me-2"></i>Download Template
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="showImportModal()">
-                                <i class="fas fa-upload me-2"></i>Upload Data
-                            </a></li>
-                        </ul>
-                    </div>
-                    @if($totalWeight < 100)
-                    <x-ui.button 
-                        href="{{ route('criterias.create') }}" 
-                        variant="primary" 
-                        icon="fas fa-plus">
-                        Add Criteria
-                    </x-ui.button>
-                    @endif
-                </div>
-            </div>
-            <div class="card-body">
-                <!-- Filter Section -->
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Filter Type:</label>
-                        <select class="form-select" id="typeFilter">
-                            <option value="">All Types</option>
-                            <option value="benefit">Benefit (Higher is better)</option>
-                            <option value="cost">Cost (Lower is better)</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Filter Weight:</label>
-                        <select class="form-select" id="weightFilter">
-                            <option value="">All Weights</option>
-                            <option value="high">High (≥ 20%)</option>
-                            <option value="medium">Medium (10-19%)</option>
-                            <option value="low">Low (< 10%)</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Sort By:</label>
-                        <select class="form-select" id="sortFilter">
-                            <option value="name">By Name</option>
-                            <option value="weight_desc">Highest Weight</option>
-                            <option value="weight_asc">Lowest Weight</option>
-                            <option value="created_at">Latest</option>
-                        </select>
+            <div class="text-center">
+                <div class="relative inline-block mb-3">
+                    <svg width="80" height="80" class="transform -rotate-90">
+                        <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="8"/>
+                        <circle cx="40" cy="40" r="35" fill="none" stroke="white" stroke-width="8"
+                                stroke-dasharray="{{ 2 * 3.14159 * 35 }}"
+                                stroke-dashoffset="{{ 2 * 3.14159 * 35 * (1 - min($totalWeight, 100) / 100) }}"
+                                stroke-linecap="round"
+                                class="transition-all duration-1000"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-lg font-bold">{{ $totalWeight }}%</span>
                     </div>
                 </div>
-
-                <!-- DataTables -->
-                <div class="table-responsive">
-                    <table class="table table-hover" id="criteriasTable">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Criteria Name</th>
-                                <th>Weight (%)</th>
-                                <th>Type</th>
-                                <th>Evaluation Count</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
+                <p class="text-sm text-white/75">{{ __('Weight Progress') }}</p>
             </div>
         </div>
     </div>
 </div>
 
-
-
-<!-- Criteria Information Chart -->
-<div class="row mt-4">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Criteria Information & Usage Guide
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <canvas id="criteriaInfoChart" height="200"></canvas>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="criteria-stats">
-                            <div class="stat-item mb-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="stat-icon me-3">
-                                        <i class="fas fa-list-ul fa-2x text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0" id="totalCriteria">0</h6>
-                                        <small class="text-muted">Total Criteria</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="stat-item mb-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="stat-icon me-3">
-                                        <i class="fas fa-balance-scale fa-2x text-success"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0" id="totalWeight">0%</h6>
-                                        <small class="text-muted">Total Weight</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="stat-item mb-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="stat-icon me-3">
-                                        <i class="fas fa-arrow-up fa-2x text-success"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0" id="benefitCriteria">0</h6>
-                                        <small class="text-muted">Benefit Criteria</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="stat-item mb-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="stat-icon me-3">
-                                        <i class="fas fa-arrow-down fa-2x text-warning"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0" id="costCriteria">0</h6>
-                                        <small class="text-muted">Cost Criteria</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<!-- Header Section -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Evaluation Criteria') }}</h1>
+        <p class="text-gray-600">{{ __('Manage evaluation criteria and their weights for SAW method') }}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <x-ui.button 
+            variant="outline-secondary" 
+            size="sm" 
+            icon="fas fa-sync-alt"
+            onclick="refreshTable()" 
+            id="refreshBtn">
+            {{ __('Refresh') }}
+        </x-ui.button>
+        
+        <div class="dropdown" x-data="{ open: false }">
+            <x-ui.button 
+                variant="success" 
+                size="sm" 
+                icon="fas fa-file-import"
+                @click="open = !open"
+                class="dropdown-toggle">
+                {{ __('Import') }}
+            </x-ui.button>
+            <div x-show="open" @click.away="open = false" x-transition class="dropdown-menu">
+                <a class="dropdown-item dropdown-item-icon" href="{{ route('criterias.import-template') }}">
+                    <i class="fas fa-download text-success-600"></i>
+                    {{ __('Download Template') }}
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item dropdown-item-icon" href="#" onclick="showImportModal()">
+                    <i class="fas fa-upload text-primary-600"></i>
+                    {{ __('Upload Data') }}
+                </a>
             </div>
         </div>
+        
+        <x-ui.button 
+            href="{{ route('criterias.create') }}" 
+            variant="primary" 
+            icon="fas fa-plus">
+            {{ __('Add Criteria') }}
+        </x-ui.button>
     </div>
+</div>
 
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-lightbulb me-2"></i>
-                    How to Use Criteria
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="usage-guide">
-                    <div class="guide-step mb-3">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h6 class="mb-1">Define Criteria</h6>
-                            <p class="text-muted small mb-0">Create evaluation criteria with clear names and types</p>
-                        </div>
-                    </div>
-
-                    <div class="guide-step mb-3">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h6 class="mb-1">Set Weights</h6>
-                            <p class="text-muted small mb-0">Assign importance percentage (total must equal 100%)</p>
-                        </div>
-                    </div>
-
-                    <div class="guide-step mb-3">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h6 class="mb-1">Choose Type</h6>
-                            <p class="text-muted small mb-0">Benefit: Higher is better, Cost: Lower is better</p>
-                        </div>
-                    </div>
-
-                    <div class="guide-step">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <h6 class="mb-1">Ready for SAW</h6>
-                            <p class="text-muted small mb-0">When total weight reaches 100%, start evaluations</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="stats-card bg-gradient-to-br from-primary-500 to-primary-600">
+        <div class="stats-content">
+            <div class="stats-number" id="totalCriterias">{{ $totalCriterias }}</div>
+            <div class="stats-label">{{ __('Total Criteria') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-sliders"></i>
+        </div>
+    </div>
+    <div class="stats-card bg-gradient-to-br from-success-500 to-success-600">
+        <div class="stats-content">
+            <div class="stats-number" id="benefitCriterias">{{ $benefitCriterias }}</div>
+            <div class="stats-label">{{ __('Benefit Type') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-arrow-up"></i>
+        </div>
+    </div>
+    <div class="stats-card bg-gradient-to-br from-warning-500 to-warning-600">
+        <div class="stats-content">
+            <div class="stats-number" id="costCriterias">{{ $costCriterias }}</div>
+            <div class="stats-label">{{ __('Cost Type') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-arrow-down"></i>
+        </div>
+    </div>
+    <div class="stats-card bg-gradient-to-br from-info-500 to-info-600">
+        <div class="stats-content">
+            <div class="stats-number" id="avgWeight">{{ round($avgWeight, 1) }}</div>
+            <div class="stats-label">{{ __('Avg Weight') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-balance-scale"></i>
         </div>
     </div>
 </div>
 
-<!-- Restore Deleted Criteria Modal -->
-<div class="modal fade" id="restoreModal" tabindex="-1" aria-labelledby="restoreModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="restoreModalLabel">
-                    <i class="fas fa-undo me-2 text-warning"></i>
-                    {{ __('Restore Deleted Criteria') }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    {{ __('This will show all criteria that have been deleted. You can restore them one by one or restore all at once.') }}
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="mb-0">{{ __('Deleted Criteria') }}</h6>
-                    <div class="d-flex gap-2">
-                        <x-ui.button 
-                            variant="outline-warning" 
-                            size="sm" 
-                            icon="fas fa-undo"
-                            onclick="restoreAllCriteria()" 
-                            id="restoreAllBtn" 
-                            :disabled="true">
-                            {{ __('Restore All') }}
-                        </x-ui.button>
-                        <x-ui.button 
-                            variant="outline-secondary" 
-                            size="sm" 
-                            icon="fas fa-sync-alt"
-                            onclick="refreshRestoreList()">
-                            {{ __('Refresh') }}
-                        </x-ui.button>
+<!-- Data Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="flex items-center justify-between">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-table text-primary-500"></i>
+                {{ __('Criteria List') }}
+            </h6>
+            <div class="flex items-center gap-2">
+                <div class="dropdown" x-data="{ open: false }">
+                    <button @click="open = !open" class="btn btn-outline-secondary btn-sm dropdown-toggle">
+                        <i class="fas fa-download mr-2"></i>
+                        {{ __('Export') }}
+                    </button>
+                    <div x-show="open" @click.away="open = false" x-transition class="dropdown-menu">
+                        <a class="dropdown-item dropdown-item-icon" href="{{ route('criterias.export-excel') }}">
+                            <i class="fas fa-file-excel text-success-600"></i>
+                            {{ __('Excel Format') }}
+                        </a>
+                        <a class="dropdown-item dropdown-item-icon" href="{{ route('criterias.export-pdf') }}">
+                            <i class="fas fa-file-pdf text-danger-600"></i>
+                            {{ __('PDF Format') }}
+                        </a>
                     </div>
                 </div>
-
-                <div id="deletedCriteriaCards" class="row g-3">
-                    <!-- Deleted criteria will be displayed as cards here -->
-                </div>
-
-                <div id="noDeletedCriteria" class="text-center py-4" style="display: none;">
-                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                    <h6 class="text-success">{{ __('No Deleted Criteria') }}</h6>
-                    <p class="text-muted">{{ __('All criteria are currently active.') }}</p>
-                </div>
+                <button onclick="toggleBulkActions()" class="btn btn-outline-primary btn-sm" id="bulkActionToggle" style="display: none;">
+                    <i class="fas fa-tasks mr-2"></i>
+                    {{ __('Bulk Actions') }}
+                </button>
             </div>
-            <div class="modal-footer">
-                <x-ui.button 
-                    variant="secondary" 
-                    type="button" 
-                    data-bs-dismiss="modal">
-                    {{ __('Close') }}
-                </x-ui.button>
-            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-container">
+            <table id="criteriasTable" class="table dataTable">
+                <thead>
+                    <tr>
+                        <th width="30">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                        </th>
+                        <th width="50">{{ __('No') }}</th>
+                        <th>{{ __('Criteria Name') }}</th>
+                        <th>{{ __('Code') }}</th>
+                        <th>{{ __('Type') }}</th>
+                        <th>{{ __('Weight') }}</th>
+                        <th>{{ __('Unit') }}</th>
+                        <th>{{ __('Status') }}</th>
+                        <th width="120">{{ __('Actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be loaded via AJAX -->
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Criteria Detail Modal -->
-<div class="modal fade" id="criteriaModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Criteria Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="criteriaModalBody">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <x-ui.button variant="secondary" type="button" data-bs-dismiss="modal">Close</x-ui.button>
+<!-- Weight Validation Alert -->
+<div id="weightAlert" class="fixed bottom-4 right-4 z-50" style="display: none;">
+    <div class="alert alert-warning shadow-lg max-w-sm">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-exclamation-triangle text-warning-600"></i>
+            <div>
+                <p class="font-semibold">{{ __('Weight Warning') }}</p>
+                <p class="text-sm" id="weightMessage"></p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Import Modal -->
-<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+<div x-data="{ showImportModal: false }" x-show="showImportModal" class="modal" x-transition>
+    <div class="modal-backdrop"></div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="importModalLabel">
-                    <i class="fas fa-file-import me-2"></i>Import Criteria
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">{{ __('Import Criteria') }}</h5>
+                <button @click="showImportModal = false" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <form action="{{ route('criterias.import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+            <form id="importForm" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="import_file" class="form-label">Select Excel/CSV File</label>
-                        <input type="file" class="form-control" id="import_file" name="import_file" 
-                               accept=".xlsx,.xls,.csv" required>
-                        <div class="form-text">
-                            Supported formats: Excel (.xlsx, .xls) and CSV (.csv). Maximum file size: 10MB
+                    <div class="mb-4">
+                        <label class="form-label">{{ __('Select Excel File') }}</label>
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                        <div class="text-sm text-gray-500 mt-2">
+                            {{ __('Accepted formats: .xlsx, .xls, .csv') }}
                         </div>
                     </div>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Important:</strong>
-                        <ul class="mb-0 mt-2">
-                            <li>Download the template first to see the required format</li>
-                            <li>Total weight of all criteria must equal 100%</li>
-                            <li>Type must be either "benefit" or "cost"</li>
-                            <li>Existing criteria will be updated if found</li>
-                            <li><strong>This will replace ALL existing criteria!</strong></li>
-                        </ul>
+                    <div class="bg-info-50 border border-info-200 rounded-lg p-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-info-circle text-info-600"></i>
+                            <div>
+                                <h6 class="font-semibold text-info-800">{{ __('Import Instructions') }}</h6>
+                                <ul class="text-sm text-info-700 mt-2 space-y-1">
+                                    <li>• {{ __('Download the template first') }}</li>
+                                    <li>• {{ __('Fill in the criteria data') }}</li>
+                                    <li>• {{ __('Make sure weights sum to 100') }}</li>
+                                    <li>• {{ __('Criteria codes must be unique') }}</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <x-ui.button variant="secondary" type="button" data-bs-dismiss="modal">Cancel</x-ui.button>
-                    <x-ui.button variant="success" type="submit" icon="fas fa-upload">Import Data</x-ui.button>
+                    <button type="button" @click="showImportModal = false" class="btn btn-secondary">
+                        {{ __('Cancel') }}
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="importBtn">
+                        <i class="fas fa-upload mr-2"></i>
+                        {{ __('Import Data') }}
+                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+<div x-data="{ showBulkModal: false }" x-show="showBulkModal" class="modal" x-transition>
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ __('Bulk Actions') }}</h5>
+                <button @click="showBulkModal = false" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <p class="text-gray-700">
+                        {{ __('Selected criteria: ') }}<span id="selectedCount" class="font-semibold">0</span>
+                    </p>
+                </div>
+                <div class="space-y-3">
+                    <button onclick="bulkAction('activate')" class="btn btn-success w-full justify-start">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        {{ __('Activate Selected') }}
+                    </button>
+                    <button onclick="bulkAction('deactivate')" class="btn btn-warning w-full justify-start">
+                        <i class="fas fa-pause-circle mr-2"></i>
+                        {{ __('Deactivate Selected') }}
+                    </button>
+                    <button onclick="bulkAction('delete')" class="btn btn-danger w-full justify-start">
+                        <i class="fas fa-trash mr-2"></i>
+                        {{ __('Delete Selected') }}
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" @click="showBulkModal = false" class="btn btn-secondary">
+                    {{ __('Cancel') }}
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -459,921 +303,355 @@
 
 @push('scripts')
 <script>
+// Global variables
 let criteriasTable;
+let selectedCriterias = [];
 
-$(document).ready(function() {
-    // Initialize DataTable
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCriteriasPage();
+    checkWeightStatus();
+});
+
+function initializeCriteriasPage() {
+    initializeDataTable();
+    loadStatistics();
+    bindEvents();
+}
+
+function initializeDataTable() {
     criteriasTable = $('#criteriasTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
-            url: "{{ route('criterias.index') }}",
+            url: '{{ route("criterias.index") }}',
             data: function (d) {
-                d.type = $('#typeFilter').val();
-                d.weight_range = $('#weightFilter').val();
-                d.sort_by = $('#sortFilter').val();
+                // Add any additional filters here
             }
         },
         columns: [
-            {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-            {data: 'name', name: 'name'},
-            {data: 'weight_percentage', name: 'weight', searchable: false},
-            {data: 'type_badge', name: 'type', orderable: false, searchable: false},
-            {data: 'evaluations_count', name: 'evaluations_count', orderable: false, searchable: false},
+            {
+                data: 'checkbox',
+                name: 'checkbox',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'DT_RowIndex',
+                name: 'DT_RowIndex',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'name',
+                name: 'name',
+                render: function(data, type, row) {
+                    return `<div class="font-medium">${data}</div>`;
+                }
+            },
+            {
+                data: 'code',
+                name: 'code',
+                render: function(data) {
+                    return `<code class="badge badge-secondary">${data}</code>`;
+                }
+            },
+            {
+                data: 'type',
+                name: 'type',
+                render: function(data) {
+                    if (data === 'benefit') {
+                        return '<span class="badge badge-success"><i class="fas fa-arrow-up mr-1"></i>{{ __("Benefit") }}</span>';
+                    } else {
+                        return '<span class="badge badge-warning"><i class="fas fa-arrow-down mr-1"></i>{{ __("Cost") }}</span>';
+                    }
+                }
+            },
             {
                 data: 'weight',
                 name: 'weight',
-                render: function(data, type, row) {
-                    if (data >= 20) {
-                        return '<span class="badge bg-success">High</span>';
-                    } else if (data >= 10) {
-                        return '<span class="badge bg-warning">Medium</span>';
-                    } else {
-                        return '<span class="badge bg-secondary">Low</span>';
-                    }
-                },
-                searchable: false
+                render: function(data) {
+                    return `<span class="font-semibold text-primary-600">${data}%</span>`;
+                }
             },
-            {data: 'action', name: 'action', orderable: false, searchable: false}
+            {
+                data: 'unit',
+                name: 'unit',
+                render: function(data) {
+                    return data || '<span class="text-gray-400">-</span>';
+                }
+            },
+            {
+                data: 'status',
+                name: 'status',
+                render: function(data) {
+                    if (data === 'active') {
+                        return '<span class="badge badge-success">{{ __("Active") }}</span>';
+                    } else {
+                        return '<span class="badge badge-danger">{{ __("Inactive") }}</span>';
+                    }
+                }
+            },
+            {
+                data: 'actions',
+                name: 'actions',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            }
         ],
-        order: [[2, 'desc']], // Sort by weight descending
+        order: [[2, 'asc']],
         pageLength: 25,
         responsive: true,
         language: {
-            processing: "Processing...",
-            search: "Search:",
-            lengthMenu: "Show _MENU_ entries per page",
-            info: "Showing _START_ to _END_ of _TOTAL_ entries",
-            infoEmpty: "Showing 0 to 0 of 0 entries",
-            infoFiltered: "(filtered from _MAX_ total entries)",
-            loadingRecords: "Loading...",
-            zeroRecords: "No matching records found",
-            emptyTable: "No data available in table",
+            processing: '<div class="flex items-center gap-2"><div class="loading-spinner w-5 h-5"></div>{{ __("Loading...") }}</div>',
+            search: '{{ __("Search:") }}',
+            lengthMenu: '{{ __("Show _MENU_ entries") }}',
+            info: '{{ __("Showing _START_ to _END_ of _TOTAL_ entries") }}',
+            infoEmpty: '{{ __("No entries found") }}',
+            infoFiltered: '{{ __("(filtered from _MAX_ total entries)") }}',
             paginate: {
-                first: "First",
-                previous: "Previous",
-                next: "Next",
-                last: "Last"
+                first: '{{ __("First") }}',
+                last: '{{ __("Last") }}',
+                next: '{{ __("Next") }}',
+                previous: '{{ __("Previous") }}'
             }
         },
         drawCallback: function() {
-            // Initialize tooltips for dropdown items
-            $('[data-bs-toggle="tooltip"]').tooltip({
-                placement: 'top',
-                trigger: 'hover'
-            });
-        },
-        // Disable animations and effects
-        deferRender: true,
-        scroller: false
-    });
-
-    // Filter change events
-    $('#typeFilter, #weightFilter, #sortFilter').change(function() {
-        criteriasTable.ajax.reload();
-    });
-
-    // Initialize criteria info chart
-    if (typeof Chart !== 'undefined') {
-        window.criteriaInfoChart = initCriteriaInfoChart();
-        loadCriteriaInfo();
-
-        // Refresh chart when table is updated
-        criteriasTable.on('draw', function() {
-            loadCriteriaInfo();
-        });
-    }
-});
-
-// Chart functions removed - table functionality restored
-
-// Initialize criteria info chart
-function initCriteriaInfoChart() {
-    const ctx = document.getElementById('criteriaInfoChart');
-    if (!ctx) return;
-
-    // Create simple doughnut chart
-    const chart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Benefit Criteria', 'Cost Criteria'],
-            datasets: [{
-                data: [0, 0],
-                backgroundColor: ['#10b981', '#f59e0b'],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        usePointStyle: true,
-                        font: { size: 12 }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed + ' criteria';
-                        }
-                    }
-                }
-            },
-            animation: {
-                animateRotate: true,
-                duration: 1000
-            }
+            // Update weight status after each draw
+            setTimeout(checkWeightStatus, 500);
         }
     });
-
-    return chart;
 }
 
-// Load criteria information
-function loadCriteriaInfo() {
-    $.get("{{ route('criterias.index') }}", { get_chart_info: true })
-        .done(function(data) {
-            // Update chart
-            if (window.criteriaInfoChart) {
-                window.criteriaInfoChart.data.datasets[0].data = [data.benefit_criteria, data.cost_criteria];
-                window.criteriaInfoChart.update();
-            }
+function bindEvents() {
+    // Select all checkbox
+    $('#selectAll').change(function() {
+        const isChecked = $(this).is(':checked');
+        $('.criteria-checkbox').prop('checked', isChecked);
+        updateSelectedCriterias();
+    });
 
-            // Update statistics
-            $('#totalCriteria').text(data.total_criteria);
-            $('#totalWeight').text(data.total_weight + '%');
-            $('#benefitCriteria').text(data.benefit_criteria);
-            $('#costCriteria').text(data.cost_criteria);
+    // Individual checkboxes
+    $(document).on('change', '.criteria-checkbox', function() {
+        updateSelectedCriterias();
+    });
 
-            // Update chart colors based on status
-            updateChartColors(data.status);
-        })
-        .fail(function() {
-            console.log('Failed to load criteria info');
-        });
+    // Import form
+    $('#importForm').submit(function(e) {
+        e.preventDefault();
+        handleImport();
+    });
 }
 
-// Update chart colors based on status
-function updateChartColors(status) {
-    if (!window.criteriaInfoChart) return;
-
-    let colors = ['#10b981', '#f59e0b']; // Default: green, yellow
-
-    if (status === 'Complete') {
-        colors = ['#10b981', '#10b981']; // All green
-    } else if (status === 'Overweight') {
-        colors = ['#ef4444', '#ef4444']; // All red
-    }
-
-    window.criteriaInfoChart.data.datasets[0].backgroundColor = colors;
-    window.criteriaInfoChart.update();
+function loadStatistics() {
+    // Statistics are already loaded from the controller
+    // This function can be used to refresh stats if needed
 }
 
 function refreshTable() {
-    criteriasTable.ajax.reload(function() {
-        showSuccess('Data successfully refreshed');
-    });
-}
-
-function showImportModal() {
-    $('#importModal').modal('show');
-}
-
-// Handle import form submission
-$('#importForm').on('submit', function(e) {
-    const submitBtn = $(this).find('button[type="submit"]');
-    const originalText = submitBtn.html();
+    const btn = $('#refreshBtn');
+    btn.prop('disabled', true);
+    btn.find('i').addClass('fa-spin');
     
-    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Importing...');
+    criteriasTable.ajax.reload(() => {
+        btn.prop('disabled', false);
+        btn.find('i').removeClass('fa-spin');
+        loadStatistics();
+        checkWeightStatus();
+    });
+}
+
+function updateSelectedCriterias() {
+    selectedCriterias = [];
+    $('.criteria-checkbox:checked').each(function() {
+        selectedCriterias.push($(this).val());
+    });
     
-    // Reset on form reset
-    $('#importModal').on('hidden.bs.modal', function() {
-        submitBtn.prop('disabled', false).html(originalText);
-        $('#import_file').val('');
-    });
-});
-
-// Restore functionality for criteria
-function showRestoreModal() {
-    $('#restoreModal').modal('show');
-    loadDeletedCriteria();
-}
-
-function loadDeletedCriteria() {
-    $.get("{{ route('criterias.index') }}", { get_deleted: true })
-        .done(function(response) {
-            if (response.deleted_criteria && response.deleted_criteria.length > 0) {
-                displayDeletedCriteria(response.deleted_criteria);
-                $('#noDeletedCriteria').hide();
-                $('#deletedCriteriaCards').show();
-            } else {
-                $('#deletedCriteriaCards').hide();
-                $('#noDeletedCriteria').show();
-            }
-        })
-        .fail(function() {
-            console.log('Failed to load deleted criteria');
-            $('#deletedCriteriaCards').hide();
-            $('#noDeletedCriteria').show();
-        });
-}
-
-function displayDeletedCriteria(criteria) {
-    const cardsContainer = $('#deletedCriteriaCards');
-    cardsContainer.empty();
-
-    criteria.forEach(function(criterion) {
-        const card = `
-            <div class="col-md-6 col-lg-4">
-                <div class="card deleted-criteria-card" data-criteria-id="${criterion.id}">
-                    <div class="card-header d-flex justify-content-between align-items-center py-2">
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input criteria-checkbox"
-                                   value="${criterion.id}" id="crit_${criterion.id}"
-                                   onchange="updateRestoreAllButton()">
-                            <label class="form-check-label small" for="crit_${criterion.id}">
-                                {{ __('Select') }}
-                            </label>
-                        </div>
-                        <span class="badge bg-danger">
-                            <i class="fas fa-trash me-1"></i>{{ __('Deleted') }}
-                        </span>
-                    </div>
-                    <div class="card-body py-3">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="criteria-icon bg-secondary me-3">
-                                <i class="fas fa-list-check text-white"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-1 fw-bold">${criterion.name}</h6>
-                                <span class="badge bg-${criterion.type === 'benefit' ? 'success' : 'warning'}">${criterion.type}</span>
-                            </div>
-                        </div>
-
-                        <div class="criteria-info mb-3">
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <small class="text-muted d-block">{{ __('Weight') }}</small>
-                                    <span class="fw-medium">${criterion.weight}%</span>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted d-block">{{ __('Type') }}</small>
-                                    <span class="fw-medium">${criterion.type}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="deleted-info mb-3">
-                            <small class="text-muted d-block">{{ __('Deleted Date') }}</small>
-                            <span class="text-danger">
-                                <i class="fas fa-calendar me-1"></i>
-                                ${criterion.deleted_at}
-                            </span>
-                        </div>
-
-                        <div class="card-actions d-flex gap-2">
-                            <button class="btn btn-outline-warning btn-sm flex-fill"
-                                    onclick="restoreCriteria([${criterion.id}])"
-                                    title="{{ __('Restore Criteria') }}">
-                                <i class="fas fa-undo me-1"></i>{{ __('Restore') }}
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm"
-                                    onclick="forceDeleteCriteria([${criterion.id}])"
-                                    title="{{ __('Delete Permanently') }}">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        cardsContainer.append(card);
-    });
-
-    updateRestoreAllButton();
-}
-
-function updateRestoreAllButton() {
-    const checkedBoxes = $('.criteria-checkbox:checked');
-    const restoreAllBtn = $('#restoreAllBtn');
-
-    if (checkedBoxes.length > 0) {
-        restoreAllBtn.prop('disabled', false);
-        restoreAllBtn.text(`Restore All (${checkedBoxes.length})`);
-    } else {
-        restoreAllBtn.prop('disabled', true);
-        restoreAllBtn.text('Restore All');
-    }
-}
-
-function restoreAllCriteria() {
-    const checkedBoxes = $('.criteria-checkbox:checked');
-    if (checkedBoxes.length === 0) return;
-
-    const criteriaIds = checkedBoxes.map(function() {
-        return $(this).val();
-    }).get();
-
-    Swal.fire({
-        title: '{{ __("Restore Criteria") }}',
-        text: `{{ __("Are you sure you want to restore") }} ${criteriaIds.length} {{ __("criteria") }}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#f59e0b',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: '{{ __("Yes, restore them!") }}',
-        cancelButtonText: '{{ __("Cancel") }}'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            restoreCriteria(criteriaIds);
-        }
-    });
-}
-
-function restoreCriteria(criteriaIds) {
-    $.ajax({
-        url: "{{ route('criterias.restore') }}",
-        type: 'POST',
-        data: {
-            _token: $('meta[name="csrf-token"]').attr('content'),
-            criteria_ids: criteriaIds
-        },
-        success: function(response) {
-            if (response.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: '{{ __("Restored!") }}',
-                    text: response.message || `{{ __("Successfully restored") }} ${criteriaIds.length} {{ __("criteria") }}`,
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-
-                // Refresh data
-                loadDeletedCriteria();
-                criteriasTable.ajax.reload();
-
-                // Close modal if no more deleted criteria
-                if (response.deleted_criteria && response.deleted_criteria.length === 0) {
-                    $('#restoreModal').modal('hide');
-                }
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: '{{ __("Error") }}',
-                    text: response.message || '{{ __("Something went wrong") }}'
-                });
-            }
-        },
-        error: function(xhr) {
-            let message = xhr.responseJSON?.message || '{{ __("Error occurred while restoring criteria") }}';
-            Swal.fire({
-                icon: 'error',
-                title: '{{ __("Error") }}',
-                text: message
-            });
-        }
-    });
-}
-
-function forceDeleteCriteria(criteriaIds) {
-    if (criteriaIds.length === 0) return;
-
-    Swal.fire({
-        title: '{{ __("Permanently Delete Criteria") }}',
-        text: `{{ __("This action cannot be undone! Are you sure you want to permanently delete") }} ${criteriaIds.length} {{ __("criteria") }}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: '{{ __("Yes, delete permanently!") }}',
-        cancelButtonText: '{{ __("Cancel") }}',
-        showDenyButton: true,
-        denyButtonText: '{{ __("No, keep them") }}',
-        denyButtonColor: '#6b7280'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: "{{ route('criterias.force-delete') }}",
-                type: 'POST',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    criteria_ids: criteriaIds
-                },
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: '{{ __("Permanently Deleted!") }}',
-                            text: response.message || `{{ __("Successfully permanently deleted") }} ${criteriaIds.length} {{ __("criteria") }}`,
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-
-                        // Refresh data
-                        loadDeletedCriteria();
-                        criteriasTable.ajax.reload();
-
-                        // Close modal if no more deleted criteria
-                        if (response.deleted_criteria && response.deleted_criteria.length === 0) {
-                            $('#restoreModal').modal('hide');
-                        }
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: '{{ __("Error") }}',
-                            text: response.message || '{{ __("Something went wrong") }}'
-                        });
-                    }
-                },
-                error: function(xhr) {
-                    let message = xhr.responseJSON?.message || '{{ __("Error occurred while permanently deleting criteria") }}';
-                    Swal.fire({
-                        icon: 'error',
-                        title: '{{ __("Error") }}',
-                        text: message
-                    });
-                }
-            });
-        }
-    });
-}
-
-function refreshRestoreList() {
-    loadDeletedCriteria();
-}
-
-// Utility functions for success/error messages
-function showSuccess(message) {
-    Swal.fire({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        icon: 'success',
-        title: message
-    });
-}
-
-function showError(message) {
-    Swal.fire({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 4000,
-        icon: 'error',
-        title: message
-    });
-}
-
-function showLoading() {
-    Swal.fire({
-        title: '{{ __("Loading...") }}',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-}
-
-function hideLoading() {
-    Swal.close();
+    $('#selectedCount').text(selectedCriterias.length);
+    $('#bulkActionToggle').toggle(selectedCriterias.length > 0);
 }
 
 function checkWeightStatus() {
-    $.get("{{ route('criterias.total-weight') }}", function(response) {
-        const totalWeight = response.total_weight;
-        const remaining = response.remaining_weight;
-        const isComplete = response.is_complete;
+    fetch('{{ route("criterias.total-weight") }}')
+        .then(response => response.json())
+        .then(data => {
+            const totalWeight = data.total_weight;
+            const alertDiv = $('#weightAlert');
+            const messageDiv = $('#weightMessage');
+            
+            if (totalWeight !== 100) {
+                if (totalWeight < 100) {
+                    messageDiv.text(`{{ __('Need') }} ${100 - totalWeight} {{ __('more points to reach 100%') }}`);
+                } else {
+                    messageDiv.text(`{{ __('Exceeds by') }} ${totalWeight - 100} {{ __('points. Please reduce.') }}`);
+                }
+                alertDiv.show();
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    alertDiv.fadeOut();
+                }, 10000);
+            } else {
+                alertDiv.hide();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking weight status:', error);
+        });
+}
 
-        let alertClass = isComplete ? 'success' : (totalWeight < 100 ? 'warning' : 'danger');
-        let message = `Total weight: ${totalWeight}% `;
+function showImportModal() {
+    Alpine.store('modals', { showImportModal: true });
+}
 
-        if (isComplete) {
-            message += '- Perfect! Ready for SAW calculation.';
-        } else if (totalWeight < 100) {
-            message += `- ${remaining}% more needed.`;
-        } else {
-            message += `- Exceeds ${totalWeight - 100}%! Need to reduce.`;
+function toggleBulkActions() {
+    Alpine.store('modals', { showBulkModal: true });
+}
+
+function handleImport() {
+    const formData = new FormData($('#importForm')[0]);
+    const btn = $('#importBtn');
+    
+    btn.prop('disabled', true);
+    btn.html('<i class="fas fa-spinner fa-spin mr-2"></i>{{ __("Importing...") }}');
+    
+    fetch('{{ route("criterias.import") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
-
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '{{ __("Success") }}',
+                text: data.message
+            });
+            Alpine.store('modals', { showImportModal: false });
+            criteriasTable.ajax.reload();
+            loadStatistics();
+            checkWeightStatus();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Error") }}',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Import error:', error);
         Swal.fire({
-            icon: isComplete ? 'success' : 'warning',
-            title: 'Criteria Weight Status',
-            html: `
-                <div class="text-start">
-                    <p><strong>Total Weight:</strong> ${totalWeight}%</p>
-                    <p><strong>Remaining Weight:</strong> ${remaining}%</p>
-                    <p><strong>Status:</strong> ${message}</p>
-                    <div class="progress mt-3">
-                        <div class="progress-bar bg-${alertClass}" style="width: ${Math.min(totalWeight, 100)}%">
-                            ${totalWeight}%
-                        </div>
-                    </div>
-                </div>
-            `,
-            confirmButtonText: 'OK'
+            icon: 'error',
+            title: '{{ __("Error") }}',
+            text: '{{ __("An error occurred during import") }}'
+        });
+    })
+    .finally(() => {
+        btn.prop('disabled', false);
+        btn.html('<i class="fas fa-upload mr-2"></i>{{ __("Import Data") }}');
+    });
+}
+
+function bulkAction(action) {
+    if (selectedCriterias.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: '{{ __("Warning") }}',
+            text: '{{ __("Please select at least one criteria") }}'
+        });
+        return;
+    }
+    
+    let title, text, confirmText;
+    
+    switch(action) {
+        case 'activate':
+            title = '{{ __("Activate Criteria") }}';
+            text = '{{ __("Are you sure you want to activate the selected criteria?") }}';
+            confirmText = '{{ __("Activate") }}';
+            break;
+        case 'deactivate':
+            title = '{{ __("Deactivate Criteria") }}';
+            text = '{{ __("Are you sure you want to deactivate the selected criteria?") }}';
+            confirmText = '{{ __("Deactivate") }}';
+            break;
+        case 'delete':
+            title = '{{ __("Delete Criteria") }}';
+            text = '{{ __("Are you sure you want to delete the selected criteria? This action cannot be undone.") }}';
+            confirmText = '{{ __("Delete") }}';
+            break;
+    }
+    
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: confirmText,
+        cancelButtonText: '{{ __("Cancel") }}'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            performBulkAction(action);
+        }
+    });
+}
+
+function performBulkAction(action) {
+    fetch('{{ route("criterias.bulk-action") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        body: JSON.stringify({
+            action: action,
+            criterias: selectedCriterias
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '{{ __("Success") }}',
+                text: data.message
+            });
+            Alpine.store('modals', { showBulkModal: false });
+            criteriasTable.ajax.reload();
+            loadStatistics();
+            checkWeightStatus();
+            selectedCriterias = [];
+            updateSelectedCriterias();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Error") }}',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Bulk action error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: '{{ __("Error") }}',
+            text: '{{ __("An error occurred") }}'
         });
     });
 }
 
-function deleteCriteria(id) {
-    Swal.fire({
-        title: '{{ __("Are you sure?") }}',
-        text: '{{ __("This action cannot be undone") }}',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: '{{ __("Yes, delete it!") }}',
-        cancelButtonText: '{{ __("Cancel") }}'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: `/criterias/${id}`,
-                type: 'DELETE',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    if (response.success) {
-                        criteriasTable.ajax.reload();
-                        showSuccess(response.message);
-                    } else {
-                        showError(response.message);
-                    }
-                },
-                error: function(xhr) {
-                    let message = xhr.responseJSON?.message || '{{ __("Error occurred while deleting criteria") }}';
-                    showError(message);
-                }
-            });
-        }
+// Initialize Alpine.js stores
+document.addEventListener('alpine:init', () => {
+    Alpine.store('modals', {
+        showImportModal: false,
+        showBulkModal: false
     });
-}
-
-function viewCriteria(id) {
-    showLoading();
-
-    $.get(`/criterias/${id}`, function(data) {
-        $('#criteriaModalBody').html(data);
-        $('#criteriaModal').modal('show');
-        hideLoading();
-    }).fail(function() {
-        hideLoading();
-        showError('Failed to load criteria details');
-    });
-}
-
-function showWeightAdjustmentTips() {
-    Swal.fire({
-        icon: 'info',
-        title: 'Weight Adjustment Tips',
-        html: `
-            <div class="text-start">
-                <h6 class="text-primary mb-3"><i class="fas fa-lightbulb me-2"></i>How to Reduce Total Weight:</h6>
-                <ul class="list-unstyled">
-                    <li class="mb-2"><i class="fas fa-edit text-warning me-2"></i>Edit criteria with high weight to reduce it</li>
-                    <li class="mb-2"><i class="fas fa-trash text-danger me-2"></i>Delete less important criteria</li>
-                    <li class="mb-2"><i class="fas fa-balance-scale text-info me-2"></i>Redistribute weight evenly</li>
-                </ul>
-                <div class="alert alert-warning mt-3">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <small><strong>Important:</strong> Total weight must be exactly 100% to run SAW calculation.</small>
-                </div>
-            </div>
-        `,
-        confirmButtonText: 'Understand',
-        confirmButtonColor: '#0d6efd',
-        width: '500px'
-    });
-}
+});
 </script>
 @endpush
-
-@push('styles')
-<style>
-/* Dropdown Styling */
-.dropdown-toggle::after {
-    display: none;
-}
-
-.dropdown-menu {
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    padding: 0.5rem 0;
-    min-width: 200px;
-    animation: dropdownFadeIn 0.2s ease-out;
-    transform-origin: top right;
-}
-
-@keyframes dropdownFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95) translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.dropdown-item {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-}
-
-.dropdown-item:hover {
-    background-color: #f8fafc;
-    color: #1e293b;
-    transform: translateX(2px);
-}
-
-.dropdown-item.text-danger:hover {
-    background-color: #fef2f2;
-    color: #dc2626;
-    transform: translateX(2px);
-}
-
-.dropdown-divider {
-    margin: 0.5rem 0;
-    border-color: #e5e7eb;
-}
-
-/* Action button styling */
-.btn-outline-secondary {
-    border-color: #d1d5db;
-    color: #6b7280;
-    transition: all 0.2s ease;
-}
-
-.btn-outline-secondary:hover {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
-    color: #374151;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.btn-outline-secondary:focus {
-    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
-}
-
-/* Criteria Info Chart Styling */
-.criteria-stats .stat-item {
-    padding: 15px;
-    border-radius: 8px;
-    background: #f8fafc;
-    border-left: 4px solid #e5e7eb;
-    transition: all 0.3s ease;
-}
-
-.criteria-stats .stat-item:hover {
-    background: #f1f5f9;
-    border-left-color: #3b82f6;
-    transform: translateX(5px);
-}
-
-.stat-icon {
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: rgba(59, 130, 246, 0.1);
-}
-
-/* Usage Guide Styling */
-.usage-guide .guide-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-}
-
-.step-number {
-    width: 30px;
-    height: 30px;
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
-.step-content h6 {
-    color: #1f2937;
-    margin-bottom: 5px;
-}
-
-        .step-content p {
-            color: #6b7280;
-            line-height: 1.4;
-        }
-
-        /* Deleted Criteria Cards Styling */
-        .deleted-criteria-card {
-            border: 1px solid #e5e7eb;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .deleted-criteria-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            border-color: #d1d5db;
-        }
-
-        .deleted-criteria-card .card-header {
-            background-color: #fef2f2;
-            border-bottom: 1px solid #fecaca;
-        }
-
-        .deleted-criteria-card .criteria-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .deleted-criteria-card .criteria-info .row {
-            margin: 0;
-        }
-
-        .deleted-criteria-card .criteria-info .col-6 {
-            padding: 0.25rem;
-        }
-
-        .deleted-criteria-card .deleted-info {
-            padding: 0.5rem;
-            background-color: #fef2f2;
-            border-radius: 0.375rem;
-            border-left: 3px solid #dc2626;
-        }
-
-        .deleted-criteria-card .card-actions {
-            margin-top: auto;
-        }
-
-        .deleted-criteria-card .form-check-input:checked {
-            background-color: #f59e0b;
-            border-color: #f59e0b;
-        }
-
-        .deleted-criteria-card .form-check-input:focus {
-            box-shadow: 0 0 0 0.2rem rgba(245, 158, 11, 0.25);
-        }
-
-/* Circular Progress - No Animation */
-.circular-progress circle:nth-child(2) {
-    /* No transitions or animations */
-}
-
-/* Card Styling - No Effects */
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-/* Weight Status Card Enhancements */
-.card-body .row.align-items-center {
-    min-height: 120px;
-}
-
-.bg-opacity-20 {
-    background-color: rgba(255, 255, 255, 0.2) !important;
-    backdrop-filter: blur(10px);
-}
-
-/* Button Enhancements */
-.btn-lg {
-    padding: 0.75rem 1.5rem;
-    font-size: 1.1rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-}
-
-/* Progress Bar Styling - No Effects */
-.progress {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 0.5rem;
-    overflow: hidden;
-}
-
-.progress-bar {
-    border-radius: 0.5rem;
-}
-
-/* Table Enhancements */
-.table td {
-    vertical-align: middle;
-    padding: 1rem 0.75rem;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-    transform: scale(1.01);
-    transition: all 0.2s ease;
-}
-
-/* Badge Styling */
-.badge {
-    font-size: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.375rem;
-    font-weight: 600;
-}
-
-/* Button Group - Removed as we now use dropdown */
-
-/* Chart Container */
-#weightChart {
-    max-height: 300px;
-    transition: opacity 0.3s ease;
-    position: relative;
-    z-index: 1;
-}
-
-/* Chart loading animation */
-.chart-loading {
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
-}
-
-
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .circular-progress {
-        width: 60px !important;
-        height: 60px !important;
-    }
-
-    .circular-progress circle {
-        r: 25 !important;
-        cx: 30 !important;
-        cy: 30 !important;
-    }
-
-    .fs-5 {
-        font-size: 0.9rem !important;
-    }
-
-    .btn-lg {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-}
-
-/* Alert Enhancements */
-.alert {
-    border: none;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Icon Styling - No Effects */
-.fas {
-    /* No transitions or effects */
-}
-
-/* Status Icons */
-.fa-check-circle {
-    color: rgba(255, 255, 255, 0.9);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.fa-exclamation-triangle {
-    color: rgba(255, 255, 255, 0.9);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.fa-times-circle {
-    color: rgba(255, 255, 255, 0.9);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-</style>
-@endpush
-
