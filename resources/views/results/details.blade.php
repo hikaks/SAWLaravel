@@ -10,19 +10,26 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Performance Analysis') }}</h1>
         <p class="text-muted mb-0">{{ __('Comprehensive performance breakdown for') }} {{ $employee->name }} - {{ $period }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-info" onclick="exportPerformanceReport()">
-            <i class="fas fa-download me-1"></i>
+    <div class="flex gap-2">
+        <x-ui.button 
+            variant="outline-info" 
+            icon="fas fa-download"
+            onclick="exportPerformanceReport()"
+            id="exportReportBtn">
             {{ __('Export Report') }}
-        </button>
-        <a href="{{ route('employees.show', $employee->id) }}" class="btn btn-outline-primary">
-            <i class="fas fa-user me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('employees.show', $employee->id) }}" 
+            variant="outline-primary" 
+            icon="fas fa-user">
             {{ __('Employee Profile') }}
-        </a>
-        <a href="{{ route('results.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('results.index') }}" 
+            variant="outline-secondary" 
+            icon="fas fa-arrow-left">
             {{ __('Back to Results') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 

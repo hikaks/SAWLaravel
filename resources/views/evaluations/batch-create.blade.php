@@ -13,32 +13,46 @@
                         <i class="fas fa-users-cog text-primary me-2"></i>
                         Batch Evaluation Input Form
                     </h5>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="selectAllEmployees">
-                            <i class="fas fa-check-square me-1"></i>Select All
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="clearAllEmployees">
-                            <i class="fas fa-square me-1"></i>Clear All
-                        </button>
-                        <a href="{{ route('evaluations.index') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i>Back to List
-                        </a>
+                    <div class="flex gap-2">
+                        <x-ui.button 
+                            variant="outline-secondary" 
+                            size="sm" 
+                            icon="fas fa-check-square"
+                            id="selectAllEmployees">
+                            Select All
+                        </x-ui.button>
+                        <x-ui.button 
+                            variant="outline-secondary" 
+                            size="sm" 
+                            icon="fas fa-square"
+                            id="clearAllEmployees">
+                            Clear All
+                        </x-ui.button>
+                        <x-ui.button 
+                            href="{{ route('evaluations.index') }}" 
+                            variant="outline-secondary" 
+                            size="sm" 
+                            icon="fas fa-arrow-left">
+                            Back to List
+                        </x-ui.button>
                     </div>
                 </div>
             </div>
             
             <div class="card-body">
                 @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="mb-4">
+                        <x-ui.alert type="success" :dismissible="true">
+                            {{ session('success') }}
+                        </x-ui.alert>
                     </div>
                 @endif
 
                 @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="mb-4">
+                        <x-ui.alert type="error" :dismissible="true">
+                            {{ session('error') }}
+                        </x-ui.alert>
                     </div>
                 @endif
 
@@ -206,10 +220,19 @@
                             <button type="button" class="btn btn-outline-secondary me-2" id="previewBtn">
                                 <i class="fas fa-eye me-1"></i>Preview Selected
                             </button>
-                            <button type="submit" class="btn btn-primary me-2" id="submitBtn">
-                                <i class="fas fa-save me-1"></i>Save Batch Evaluations
-                            </button>
-                            <button type="button" class="btn btn-outline-warning me-2" id="resetBtn">
+                            <x-ui.button 
+                                variant="primary" 
+                                type="submit" 
+                                icon="fas fa-save" 
+                                id="submitBtn" 
+                                class="mr-2">
+                                Save Batch Evaluations
+                            </x-ui.button>
+                            <x-ui.button 
+                                variant="outline-warning" 
+                                type="button" 
+                                id="resetBtn" 
+                                class="mr-2">
                                 <i class="fas fa-redo me-1"></i>Reset Form
                             </button>
                         </div>

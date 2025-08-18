@@ -26,7 +26,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">Weight:</label>
                             <div class="fs-5">
-                                <span class="badge bg-primary fs-6">{{ $criteria->weight }}%</span>
+                                <x-ui.badge variant="primary" size="lg">{{ $criteria->weight }}%</x-ui.badge>
                             </div>
                         </div>
                     </div>
@@ -35,9 +35,9 @@
                             <label class="form-label fw-bold">Type:</label>
                             <div class="fs-5">
                                 @if($criteria->type === 'benefit')
-                                    <span class="badge bg-success fs-6">Benefit</span>
+                                    <x-ui.badge variant="success" size="lg">Benefit</x-ui.badge>
                                 @else
-                                    <span class="badge bg-warning fs-6">Cost</span>
+                                    <x-ui.badge variant="warning" size="lg">Cost</x-ui.badge>
                                 @endif
                             </div>
                         </div>
@@ -123,19 +123,28 @@
                 </h6>
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('criterias.edit', $criteria->id) }}" class="btn btn-warning">
-                        <i class="fas fa-edit me-2"></i>
+                <div class="grid gap-2">
+                    <x-ui.button 
+                        href="{{ route('criterias.edit', $criteria->id) }}" 
+                        variant="warning" 
+                        icon="fas fa-edit" 
+                        class="w-full">
                         Edit Criteria
-                    </a>
-                    <a href="{{ route('evaluations.create') }}?criteria_id={{ $criteria->id }}" class="btn btn-success">
-                        <i class="fas fa-plus me-2"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        href="{{ route('evaluations.create') }}?criteria_id={{ $criteria->id }}" 
+                        variant="success" 
+                        icon="fas fa-plus" 
+                        class="w-full">
                         Add Evaluation
-                    </a>
-                    <a href="{{ route('criterias.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        href="{{ route('criterias.index') }}" 
+                        variant="secondary" 
+                        icon="fas fa-arrow-left" 
+                        class="w-full">
                         Back to List
-                    </a>
+                    </x-ui.button>
                 </div>
             </div>
         </div>
@@ -248,10 +257,12 @@
                 <p class="text-muted mb-3">
                     This criteria hasn't been used in any evaluations yet.
                 </p>
-                <a href="{{ route('evaluations.create') }}?criteria_id={{ $criteria->id }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>
+                <x-ui.button 
+                    href="{{ route('evaluations.create') }}?criteria_id={{ $criteria->id }}" 
+                    variant="primary" 
+                    icon="fas fa-plus">
                     Add First Evaluation
-                </a>
+                </x-ui.button>
             </div>
         </div>
     </div>
