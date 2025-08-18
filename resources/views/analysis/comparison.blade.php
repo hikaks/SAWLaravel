@@ -76,6 +76,20 @@
                         </div>
                     </div>
 
+                    <div id="departmentOptions" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">{{ __('Select Department (Optional)') }}</label>
+                            <select class="form-select" name="department_id" id="departmentSelect">
+                                <option value="">{{ __('All Departments') }}</option>
+                            </select>
+                            <small class="text-muted">{{ __('Leave empty to compare all departments') }}</small>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {{ __('Department comparison will show performance statistics grouped by department across selected periods.') }}
+                        </div>
+                    </div>
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-info" id="runComparisonBtn">
                             <i class="fas fa-play me-1"></i>
@@ -214,19 +228,28 @@
 </style>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let comparisonResults = null;
 let comparisonChart = null;
 
 $(document).ready(function() {
+    // Load departments on page load
+    loadDepartments();
+    
     $('#comparisonType').change(function() {
         const type = $(this).val();
+        
+        // Hide all options first
+        $('#specificOptions').hide();
+        $('#departmentOptions').hide();
+        
+        // Show relevant options based on type
         if (type === 'specific') {
             $('#specificOptions').show();
-        } else {
-            $('#specificOptions').hide();
+        } else if (type === 'department') {
+            $('#departmentOptions').show();
         }
     });
     
@@ -263,10 +286,26 @@ function runComparison() {
     $('#loadingResults').show();
     $('#runComparisonBtn').prop('disabled', true);
     
-    let requestData = {
+    // Prepare request data
+    const requestData = {
         periods: selectedPeriods,
-        employee_id: formData.get('employee_id') || null
+        comparison_type: $('#comparisonType').val() || 'all'
     };
+    
+    // Add employee_id if specific employee is selected
+    const employeeId = $('#employeeSelect').val();
+    if (employeeId) {
+        requestData.employee_id = employeeId;
+    }
+    
+    // Add department_id if department comparison is selected
+    const comparisonType = $('#comparisonType').val();
+    if (comparisonType === 'department') {
+        const departmentId = $('#departmentSelect').val();
+        if (departmentId) {
+            requestData.department_id = departmentId;
+        }
+    }
     
     $.ajax({
         url: '{{ route("analysis.comparison") }}',
@@ -306,11 +345,20 @@ function displayResults() {
     if (!comparisonResults) return;
     
     const viewType = $('input[name="viewType"]:checked').attr('id');
+    const comparisonType = $('#comparisonType').val();
     
     if (viewType === 'chartView') {
-        showResultsChart();
+        if (comparisonType === 'department') {
+            showDepartmentChart();
+        } else {
+            showResultsChart();
+        }
     } else {
-        showResultsTable();
+        if (comparisonType === 'department') {
+            showDepartmentTable();
+        } else {
+            showResultsTable();
+        }
     }
 }
 
@@ -384,6 +432,149 @@ function showResultsChart() {
             }
         }
     });
+}
+
+function showDepartmentChart() {
+    const ctx = document.createElement('canvas');
+    ctx.id = 'comparisonChart';
+    
+    $('#resultsContent').html('').append(ctx);
+    
+    // Destroy existing chart if it exists
+    if (comparisonChart) {
+        comparisonChart.destroy();
+    }
+    
+    // Prepare chart data for department comparison
+    const periods = Object.keys(comparisonResults).filter(key => key !== 'department_changes');
+    const datasets = [];
+    
+    // Get all departments across all periods
+    const allDepartments = new Set();
+    periods.forEach(period => {
+        if (comparisonResults[period] && comparisonResults[period].departments) {
+            Object.keys(comparisonResults[period].departments).forEach(dept => {
+                allDepartments.add(dept);
+            });
+        }
+    });
+    
+    // Create dataset for each department
+    Array.from(allDepartments).forEach((department, index) => {
+        const data = periods.map(period => {
+            const deptData = comparisonResults[period]?.departments?.[department];
+            return deptData ? deptData.statistics.avg_score * 100 : 0;
+        });
+        
+        datasets.push({
+            label: department,
+            data: data,
+            borderColor: `hsl(${index * 360 / allDepartments.size}, 70%, 50%)`,
+            backgroundColor: `hsla(${index * 360 / allDepartments.size}, 70%, 50%, 0.1)`,
+            tension: 0.4
+        });
+    });
+    
+    comparisonChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: periods,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Average Performance Score (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Evaluation Period'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Department Performance Comparison'
+                },
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function showDepartmentTable() {
+    let html = '<div class="table-responsive">';
+    html += '<table class="table table-hover">';
+    html += '<thead><tr><th>Department</th>';
+    
+    const periods = Object.keys(comparisonResults).filter(key => key !== 'department_changes');
+    periods.forEach(period => {
+        html += `<th>${period}</th>`;
+    });
+    html += '<th>Trend</th></tr></thead><tbody>';
+    
+    // Get all departments
+    const allDepartments = new Set();
+    periods.forEach(period => {
+        if (comparisonResults[period] && comparisonResults[period].departments) {
+            Object.keys(comparisonResults[period].departments).forEach(dept => {
+                allDepartments.add(dept);
+            });
+        }
+    });
+    
+    // Add table rows for each department
+    Array.from(allDepartments).forEach(department => {
+        html += `<tr><td><strong>${department}</strong></td>`;
+        
+        periods.forEach(period => {
+            const deptData = comparisonResults[period]?.departments?.[department];
+            if (deptData) {
+                const avgScore = (deptData.statistics.avg_score * 100).toFixed(2);
+                const employeeCount = deptData.statistics.total_employees;
+                html += `<td>${avgScore}% <small class="text-muted">(${employeeCount} emp)</small></td>`;
+            } else {
+                html += '<td>N/A</td>';
+            }
+        });
+        
+        // Calculate trend
+        let trendIcon = 'fas fa-minus';
+        let trendClass = 'trend-stable';
+        let trendText = 'Stable';
+        
+        if (comparisonResults.department_changes && comparisonResults.department_changes[department]) {
+            const changes = Object.values(comparisonResults.department_changes[department]);
+            if (changes.length > 0) {
+                const lastChange = changes[changes.length - 1];
+                if (lastChange.trend === 'improving') {
+                    trendIcon = 'fas fa-arrow-up';
+                    trendClass = 'trend-up';
+                    trendText = 'Improving';
+                } else if (lastChange.trend === 'declining') {
+                    trendIcon = 'fas fa-arrow-down';
+                    trendClass = 'trend-down';
+                    trendText = 'Declining';
+                }
+            }
+        }
+        
+        html += `<td><span class="trend-indicator ${trendClass}"><i class="${trendIcon}"></i> ${trendText}</span></td>`;
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    $('#resultsContent').html(html);
 }
 
 function showResultsTable() {
@@ -474,6 +665,8 @@ function resetComparison() {
     $('#comparisonResults').hide();
     $('#statisticsSummary').hide();
     $('#specificOptions').hide();
+    $('#departmentOptions').hide();
+    comparisonResults = null;
     
     if (comparisonChart) {
         comparisonChart.destroy();
@@ -481,9 +674,26 @@ function resetComparison() {
     }
 }
 
+function loadDepartments() {
+    $.get('{{ route("employees.index") }}', {get_departments: true})
+        .done(function(response) {
+            let departmentSelect = $('#departmentSelect');
+            departmentSelect.empty().append('<option value="">{{ __("All Departments") }}</option>');
+            
+            if (response.departments) {
+                response.departments.forEach(function(dept) {
+                    departmentSelect.append(`<option value="${dept}">${dept}</option>`);
+                });
+            }
+        })
+        .fail(function() {
+            console.log('Could not load departments');
+        });
+}
+
 function exportResults() {
     // Implementation for export functionality
     console.log('Export comparison results');
 }
 </script>
-@endsection
+@endpush

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EvaluationResult extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'employee_id',
@@ -32,6 +33,31 @@ class EvaluationResult extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * Get the evaluation details for this result.
+     * This relationship connects to the individual criteria evaluations.
+     */
+    public function evaluationDetails()
+    {
+        return $this->hasMany(Evaluation::class, 'employee_id', 'employee_id');
+    }
+
+    /**
+     * Get evaluations for this result (alias for evaluationDetails).
+     */
+    public function evaluations()
+    {
+        return $this->evaluationDetails();
+    }
+
+    /**
+     * Get evaluation details for the specific period of this result.
+     */
+    public function getEvaluationDetailsForPeriodAttribute()
+    {
+        return $this->evaluationDetails()->where('evaluation_period', $this->evaluation_period)->get();
     }
 
     /**

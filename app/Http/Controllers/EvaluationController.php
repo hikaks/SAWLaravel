@@ -13,6 +13,7 @@ use App\Imports\EvaluationsImport;
 use App\Exports\EvaluationTemplateExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 use Maatwebsite\Excel\Facades\Excel;
@@ -390,6 +391,11 @@ class EvaluationController extends Controller
 
         try {
             $period = $request->evaluation_period;
+            
+            // Handle "All Periods" option
+            if ($period === 'all') {
+                return $this->generateAllPeriodsResults($request);
+            }
 
             // Validate period readiness
             $validation = $this->sawService->validateEvaluationPeriod($period);
@@ -454,6 +460,102 @@ class EvaluationController extends Controller
                 'success' => false,
                 'message' => 'SAW calculation failed: ' . $e->getMessage(),
                 'period' => $period
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate SAW results for all available periods.
+     */
+    private function generateAllPeriodsResults(Request $request)
+    {
+        try {
+            $periods = $this->sawService->getAvailablePeriods();
+            $results = [];
+            $errors = [];
+            $totalProcessed = 0;
+            
+            if (empty($periods)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No evaluation periods found to process.',
+                    'periods_processed' => 0
+                ], 400);
+            }
+
+            foreach ($periods as $period) {
+                try {
+                    // Validate period readiness
+                    $validation = $this->sawService->validateEvaluationPeriod($period);
+
+                    if (!$validation['is_ready']) {
+                        $periodErrors = [];
+                        if (!$validation['is_weight_valid']) {
+                            $periodErrors[] = "Total criteria weight must be 100% (currently: {$validation['total_weight']}%)";
+                        }
+                        if ($validation['missing_evaluations'] > 0) {
+                            $periodErrors[] = "Missing {$validation['missing_evaluations']} evaluations from total {$validation['expected_evaluations']} required";
+                        }
+                        
+                        $errors[$period] = $periodErrors;
+                        continue;
+                    }
+
+                    // Calculate SAW for this period
+                    $periodResults = $this->sawService->calculateSAW($period);
+                    $results[$period] = [
+                        'success' => true,
+                        'total_employees' => count($periodResults),
+                        'period' => $period
+                    ];
+                    $totalProcessed++;
+                    
+                    // Clear cache for this period
+                    $this->cacheService->invalidateSAWResults($period);
+                    
+                } catch (\Exception $e) {
+                    $errors[$period] = ['Calculation failed: ' . $e->getMessage()];
+                    Log::error("SAW calculation failed for period {$period}", [
+                        'period' => $period,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // Clear general caches
+            $this->cacheService->invalidateChartData();
+            $this->cacheService->invalidateDashboard();
+
+            $hasErrors = !empty($errors);
+            $message = $totalProcessed > 0 
+                ? "SAW calculation completed for {$totalProcessed} period(s)." 
+                : "No periods could be processed.";
+                
+            if ($hasErrors) {
+                $errorCount = count($errors);
+                $message .= " {$errorCount} period(s) had errors.";
+            }
+
+            return response()->json([
+                'success' => $totalProcessed > 0,
+                'message' => $message,
+                'periods_processed' => $totalProcessed,
+                'total_periods' => count($periods),
+                'results' => $results,
+                'errors' => $errors,
+                'status' => 'completed',
+                'redirect' => route('results.index')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("All periods SAW calculation failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'All periods SAW calculation failed: ' . $e->getMessage()
             ], 500);
         }
     }

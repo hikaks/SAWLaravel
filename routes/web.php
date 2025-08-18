@@ -19,6 +19,11 @@ Route::get('/', function () {
 // Authentication routes
 require __DIR__.'/auth.php';
 
+// Test routes (for debugging)
+if (app()->environment(['local', 'testing'])) {
+    require __DIR__.'/test.php';
+}
+
 // Protected routes - require authentication
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -142,6 +147,7 @@ Route::middleware(['auth'])->prefix('analysis')->name('analysis.')->group(functi
     // Utility Routes
     Route::get('/periods', [App\Http\Controllers\AnalysisController::class, 'getAvailablePeriods'])->name('periods');
     Route::get('/criterias', [App\Http\Controllers\AnalysisController::class, 'getCriterias'])->name('criterias');
+    Route::get('/forecast/historical', [App\Http\Controllers\AnalysisController::class, 'getEmployeeHistoricalData'])->name('forecast.historical');
     
     // Export & Configuration
     Route::post('/export', [App\Http\Controllers\AnalysisController::class, 'exportAnalysis'])->name('export');

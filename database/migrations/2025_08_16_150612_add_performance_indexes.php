@@ -85,7 +85,26 @@ return new class extends Migration
      */
     private function indexExists($table, $indexName)
     {
-        $indexes = DB::select("SHOW INDEX FROM {$table} WHERE Key_name = '{$indexName}'");
-        return count($indexes) > 0;
+        try {
+            $driver = DB::getDriverName();
+            
+            if ($driver === 'sqlite') {
+                // For SQLite, check if index exists using PRAGMA
+                $indexes = DB::select("PRAGMA index_list({$table})");
+                foreach ($indexes as $index) {
+                    if ($index->name === $indexName) {
+                        return true;
+                    }
+                }
+                return false;
+            } else {
+                // For MySQL and other databases
+                $indexes = DB::select("SHOW INDEX FROM {$table} WHERE Key_name = '{$indexName}'");
+                return count($indexes) > 0;
+            }
+        } catch (\Exception $e) {
+            // If we can't check, assume index doesn't exist
+            return false;
+        }
     }
 };

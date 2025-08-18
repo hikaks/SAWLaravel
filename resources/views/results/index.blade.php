@@ -11,9 +11,13 @@
         <p class="text-muted mb-0">{{ __('Employee ranking results based on SAW calculation') }}</p>
     </div>
     <div class="d-flex gap-2">
-        <button class="btn btn-outline-info" onclick="showCalculationInfo()">
+        <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#calculationModal">
             <i class="fas fa-info-circle me-1"></i>
             {{ __('How SAW Works') }}
+        </button>
+        <button class="btn btn-success" onclick="generateResults()">
+            <i class="fas fa-calculator me-1"></i>
+            {{ __('Generate Results') }}
         </button>
         <button class="btn btn-outline-secondary" onclick="refreshResults()">
             <i class="fas fa-sync-alt me-1"></i>
@@ -80,7 +84,7 @@
             </h5>
             <div class="d-flex flex-column flex-sm-row gap-2">
                 <select class="form-select" id="periodFilter" style="min-width: 200px;">
-                    <option value="">{{ __('All Periods') }}</option>
+                    <option value="all">{{ __('All Periods') }}</option>
                     @foreach($periods as $period)
                         <option value="{{ $period }}">{{ $period }}</option>
                     @endforeach
@@ -532,6 +536,12 @@ $(document).ready(function() {
             url: "{{ route('results.index') }}",
             data: function (d) {
                 d.period = $('#periodFilter').val();
+                console.log('DataTable AJAX request with period:', d.period);
+            },
+            dataSrc: function(json) {
+                console.log('DataTable response:', json);
+                console.log('Data count:', json.data ? json.data.length : 0);
+                return json.data;
             }
         },
         columns: [
@@ -764,6 +774,130 @@ function refreshResults() {
     updateCharts();
     @endif
     showSuccess('{{ __("Data refreshed successfully") }}');
+}
+
+function generateResults() {
+    const period = $('#periodFilter').val();
+
+    if (!period) {
+        Swal.fire({
+            icon: 'warning',
+            title: '{{ __("Period Required") }}',
+            text: '{{ __("Please select a period to generate results") }}',
+            confirmButtonText: '{{ __("OK") }}',
+            confirmButtonColor: '#0d6efd'
+        });
+        return;
+    }
+
+    // Prepare confirmation message based on period selection
+    const isAllPeriods = period === 'all';
+    const confirmTitle = isAllPeriods ? '{{ __("Generate SAW Results for All Periods") }}' : '{{ __("Generate SAW Results") }}';
+    const confirmText = isAllPeriods 
+        ? '{{ __("Generate SAW calculation results for ALL available periods? This may take longer to complete.") }}'
+        : `{{ __("Generate SAW calculation results for period") }} ${period}?`;
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: confirmTitle,
+        text: confirmText,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '{{ __("Yes, Generate") }}',
+        cancelButtonText: '{{ __("Cancel") }}',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return $.ajax({
+                url: '{{ route("evaluations.generate-results") }}',
+                type: 'POST',
+                data: {
+                    evaluation_period: period,
+                    _token: '{{ csrf_token() }}'
+                },
+                dataType: 'json'
+            }).then(response => {
+                if (!response.success) {
+                    throw new Error(response.message || 'Generation failed');
+                }
+                return response;
+            }).catch(error => {
+                console.error('Generation error:', error);
+                Swal.showValidationMessage(
+                    error.responseJSON?.message || error.message || 'Generation failed'
+                );
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            const response = result.value;
+            
+            // Handle different response types for single period vs all periods
+            if (response.periods_processed !== undefined) {
+                // All periods response
+                let detailsHtml = `
+                    <div class="text-start">
+                        <p class="mb-2">${response.message}</p>
+                        <ul class="list-unstyled mb-2">
+                            <li><i class="fas fa-check-circle text-success me-2"></i><strong>{{ __("Periods Processed") }}:</strong> ${response.periods_processed}/${response.total_periods}</li>
+                        </ul>
+                `;
+                
+                if (response.errors && Object.keys(response.errors).length > 0) {
+                    detailsHtml += `<div class="alert alert-warning mt-2"><small><strong>{{ __("Periods with errors") }}:</strong><br>`;
+                    Object.keys(response.errors).forEach(period => {
+                        detailsHtml += `• ${period}<br>`;
+                    });
+                    detailsHtml += `</small></div>`;
+                }
+                
+                detailsHtml += `</div>`;
+                
+                Swal.fire({
+                    icon: response.success ? 'success' : 'warning',
+                    title: response.success ? '{{ __("All Periods Processed") }}' : '{{ __("Partially Completed") }}',
+                    html: detailsHtml,
+                    confirmButtonText: '{{ __("OK") }}',
+                    confirmButtonColor: '#198754'
+                });
+            } else {
+                // Single period response
+                Swal.fire({
+                    icon: 'success',
+                    title: '{{ __("Success") }}',
+                    text: response.message,
+                    confirmButtonText: '{{ __("OK") }}',
+                    confirmButtonColor: '#198754'
+                });
+            }
+            
+            // Refresh the results table and charts
+            @if($periods->count() > 0)
+            resultsTable.ajax.reload();
+            updateCharts();
+            @endif
+        }
+    });
+}
+
+function showSuccess(message) {
+    if (window.utils?.showSuccessToast) {
+        window.utils.showSuccessToast(message);
+    } else {
+        // Fallback to SweetAlert if utils is not available
+        Swal.fire({
+            icon: 'success',
+            title: '{{ __("Success") }}',
+            text: message,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+    }
 }
 
 function exportResults(format) {

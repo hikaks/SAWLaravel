@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CacheService
@@ -287,7 +288,7 @@ class CacheService
         try {
             // For database cache driver, we need to manually query and delete
             if (config('cache.default') === 'database') {
-                $keys = \DB::table('cache')
+                $keys = DB::table('cache')
                     ->where('key', 'like', str_replace('*', '%', $pattern))
                     ->pluck('key');
 
@@ -326,7 +327,7 @@ class CacheService
             $stats = [];
             foreach ($prefixes as $name => $prefix) {
                 $pattern = $this->generateKey($prefix, '%');
-                $count = \DB::table('cache')
+                $count = DB::table('cache')
                     ->where('key', 'like', $pattern)
                     ->count();
                 $stats[$name] = $count;
@@ -337,6 +338,14 @@ class CacheService
             Log::warning("Failed to get cache stats", ['error' => $e->getMessage()]);
             return [];
         }
+    }
+
+    /**
+     * Generic remember method for custom cache keys
+     */
+    public function remember(string $key, int $ttl, callable $callback): mixed
+    {
+        return Cache::remember($key, $ttl, $callback);
     }
 
     /**

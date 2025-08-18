@@ -262,13 +262,17 @@
 </style>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let forecastResults = null;
 let forecastChart = null;
 
 $(document).ready(function() {
+    // Show debug info on page load
+    console.log('🚀 Forecast page loaded');
+    showDebugInfo();
+    
     $('#employeeSelect').change(function() {
         const employeeId = $(this).val();
         if (employeeId) {
@@ -286,10 +290,32 @@ $(document).ready(function() {
     $('input[name="viewType"]').change(function() {
         displayResults();
     });
+    
+    // Add debug button (hidden by default, can be shown via console)
+    if (!$('#debugBtn').length) {
+        const debugBtn = $(`
+            <button type="button" id="debugBtn" class="btn btn-sm btn-outline-secondary" 
+                    style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: none;"
+                    onclick="showDebugInfo()">
+                <i class="fas fa-bug me-1"></i> Debug
+            </button>
+        `);
+        $('body').append(debugBtn);
+    }
+    
+    // Global error handler for unhandled JavaScript errors
+    window.addEventListener('error', function(e) {
+        console.error('❌ JavaScript Error:', {
+            message: e.message,
+            filename: e.filename,
+            lineno: e.lineno,
+            colno: e.colno,
+            error: e.error
+        });
+    });
 });
 
 function loadHistoricalData(employeeId) {
-    // This would typically make an AJAX call to get historical data
     $('#historicalPreview').show();
     $('#historicalData').html(`
         <div class="text-center">
@@ -300,32 +326,84 @@ function loadHistoricalData(employeeId) {
         </div>
     `);
     
-    // Simulate loading historical data
-    setTimeout(() => {
-        $('#historicalData').html(`
-            <div class="historical-item">
-                <span>2024-01</span>
-                <strong>85.2%</strong>
-            </div>
-            <div class="historical-item">
-                <span>2024-02</span>
-                <strong>87.1%</strong>
-            </div>
-            <div class="historical-item">
-                <span>2024-03</span>
-                <strong>89.3%</strong>
-            </div>
-            <small class="text-muted">{{ __('Historical performance data') }}</small>
-        `);
-    }, 1000);
+    // Make AJAX call to get actual historical data
+    $.ajax({
+        url: '{{ route("analysis.forecast.historical") }}',
+        method: 'GET',
+        data: {
+            employee_id: employeeId
+        },
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            console.log('Historical data response:', response);
+            if (response.success && response.data && response.data.length > 0) {
+                let historicalHtml = '';
+                response.data.forEach(function(item) {
+                    const score = parseFloat(item.total_score) * 100; // Convert to percentage
+                    historicalHtml += `
+                        <div class="historical-item">
+                            <span>${item.evaluation_period}</span>
+                            <strong>${score.toFixed(1)}%</strong>
+                        </div>
+                    `;
+                });
+                historicalHtml += '<small class="text-muted">{{ __("Historical performance data") }}</small>';
+                $('#historicalData').html(historicalHtml);
+            } else {
+                console.log('No historical data found');
+                $('#historicalData').html(`
+                    <div class="text-muted text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {{ __("No historical data available") }}
+                    </div>
+                `);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Historical data error:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                responseText: xhr.responseText,
+                error: error
+            });
+            
+            let errorMessage = 'Gagal memuat data historis';
+            
+            if (xhr.status === 0) {
+                errorMessage = 'Tidak dapat terhubung ke server';
+            } else if (xhr.status === 404) {
+                errorMessage = 'Endpoint data historis tidak ditemukan';
+            } else if (xhr.status === 419) {
+                errorMessage = 'CSRF Token tidak valid';
+            } else if (xhr.status === 500) {
+                errorMessage = 'Kesalahan server saat memuat data historis';
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            
+            $('#historicalData').html(`
+                <div class="alert alert-warning text-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>❌ ${errorMessage}</strong><br>
+                    <small class="text-muted mt-1 d-block">Silakan refresh halaman atau pilih karyawan lain</small>
+                </div>
+            `);
+        }
+    });
 }
 
 function generateForecast() {
     const formData = new FormData($('#forecastForm')[0]);
     const employeeId = formData.get('employee_id');
     
+    // Clear previous errors
+    $('.alert-danger').remove();
+    
+    // Detailed validation
     if (!employeeId) {
-        showError('Please select an employee');
+        showError('❌ Silakan pilih karyawan terlebih dahulu');
         return;
     }
     
@@ -335,9 +413,28 @@ function generateForecast() {
     });
     
     if (selectedMethods.length === 0) {
-        showError('Please select at least one forecasting method');
+        showError('❌ Silakan pilih minimal satu metode peramalan');
         return;
     }
+    
+    const periodsAhead = parseInt(formData.get('periods_ahead'));
+    if (!periodsAhead || periodsAhead < 1 || periodsAhead > 12) {
+        showError('❌ Periode peramalan harus antara 1-12 bulan');
+        return;
+    }
+    
+    const confidenceLevel = parseFloat(formData.get('confidence_level'));
+    if (!confidenceLevel || confidenceLevel < 0.5 || confidenceLevel > 0.99) {
+        showError('❌ Tingkat kepercayaan harus antara 50%-99%');
+        return;
+    }
+    
+    console.log('🚀 Starting forecast generation...', {
+        employeeId: employeeId,
+        methods: selectedMethods,
+        periods: periodsAhead,
+        confidence: confidenceLevel
+    });
     
     $('#forecastResults').hide();
     $('#forecastAnalysis').hide();
@@ -359,27 +456,70 @@ function generateForecast() {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
         success: function(response) {
+            console.log('✅ Forecast response received:', response);
             $('#loadingResults').hide();
             $('#runForecastBtn').prop('disabled', false);
             
-            if (response.success) {
-                forecastResults = response.data;
-                displayResults();
-                displayAnalysis();
-                $('#forecastResults').show();
-                $('#forecastAnalysis').show();
+            if (response && response.success === true) {
+                if (response.data && response.data.forecasts) {
+                    console.log('✅ Forecast data valid, displaying results...');
+                    forecastResults = response.data;
+                    displayResults();
+                    displayAnalysis();
+                    $('#forecastResults').show();
+                    $('#forecastAnalysis').show();
+                } else {
+                    console.error('❌ Invalid forecast data structure:', response.data);
+                    showError('❌ Data peramalan tidak valid. Struktur data tidak sesuai.');
+                }
             } else {
-                showError('Forecast failed: ' + (response.message || 'Unknown error'));
+                const errorMsg = response && response.message ? response.message : 'Respons server tidak valid';
+                console.error('❌ Forecast failed:', errorMsg);
+                showError('❌ Peramalan gagal: ' + errorMsg);
             }
         },
-        error: function(xhr) {
+        error: function(xhr, status, error) {
+            console.error('❌ AJAX Error Details:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                responseText: xhr.responseText,
+                error: error,
+                ajaxStatus: status
+            });
+            
             $('#loadingResults').hide();
             $('#runForecastBtn').prop('disabled', false);
             
-            let errorMessage = 'Forecast failed';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
+            let errorMessage = '❌ Terjadi kesalahan saat memproses peramalan';
+            
+            if (xhr.status === 0) {
+                errorMessage = '❌ Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+            } else if (xhr.status === 404) {
+                errorMessage = '❌ Endpoint tidak ditemukan (404). Periksa konfigurasi route.';
+            } else if (xhr.status === 419) {
+                errorMessage = '❌ CSRF Token tidak valid. Silakan refresh halaman.';
+            } else if (xhr.status === 422) {
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = '❌ Validasi gagal: ' + errors.join(', ');
+                } else {
+                    errorMessage = '❌ Data input tidak valid.';
+                }
+            } else if (xhr.status === 500) {
+                errorMessage = '❌ Kesalahan server internal. Silakan coba lagi atau hubungi administrator.';
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = '❌ ' + xhr.responseJSON.message;
+            } else if (xhr.responseText) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage = '❌ ' + response.message;
+                    }
+                } catch (e) {
+                    errorMessage = '❌ Respons server tidak valid: ' + xhr.statusText;
+                }
             }
+            
             showError(errorMessage);
         }
     });
@@ -446,7 +586,8 @@ function showResultsChart() {
     };
     
     Object.keys(forecasts).forEach(method => {
-        const forecastData = [...Array(historicalData.length).fill(null), ...forecasts[method]];
+        const forecastScores = forecasts[method].map(item => item.predicted_score * 100);
+        const forecastData = [...Array(historicalData.length).fill(null), ...forecastScores];
         
         datasets.push({
             label: method.replace('_', ' ').toUpperCase(),
@@ -510,7 +651,7 @@ function showResultsTable() {
         
         ['linear_trend', 'moving_average', 'weighted_average'].forEach(method => {
             const value = forecasts[method] && forecasts[method][i-1] 
-                ? forecasts[method][i-1].toFixed(2) + '%' 
+                ? (forecasts[method][i-1].predicted_score * 100).toFixed(2) + '%' 
                 : 'N/A';
             html += `<td>${value}</td>`;
         });
@@ -576,14 +717,64 @@ function displayAnalysis() {
 }
 
 function showError(message) {
+    // Remove any existing alerts
+    $('.alert').remove();
+    
     const alertHtml = `
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="d-flex align-items-start">
+                <i class="fas fa-exclamation-triangle me-3 mt-1" style="font-size: 1.2em;"></i>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-2">Peramalan Gagal</h6>
+                    <p class="mb-2">${message}</p>
+                    <hr class="my-2">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Jika masalah berlanjut, silakan refresh halaman atau hubungi administrator.
+                    </small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         </div>
     `;
+    
+    // Show error in multiple places for better visibility
     $('#forecastResults').html(alertHtml).show();
+    
+    // Also show a toast notification
+    if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+        const toastHtml = `
+            <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ${message.replace(/❌\s*/, '')}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        // Create toast container if it doesn't exist
+        if (!$('#toast-container').length) {
+            $('body').append('<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>');
+        }
+        
+        const $toast = $(toastHtml);
+        $('#toast-container').append($toast);
+        const toast = new bootstrap.Toast($toast[0]);
+        toast.show();
+        
+        // Remove toast element after it's hidden
+        $toast.on('hidden.bs.toast', function() {
+            $(this).remove();
+        });
+    }
+    
+    // Scroll to error message
+    $('html, body').animate({
+        scrollTop: $('#forecastResults').offset().top - 100
+    }, 500);
 }
 
 function resetForecast() {
@@ -591,11 +782,34 @@ function resetForecast() {
     $('#forecastResults').hide();
     $('#forecastAnalysis').hide();
     $('#historicalPreview').hide();
+    $('.alert').remove();
     
     if (forecastChart) {
         forecastChart.destroy();
         forecastChart = null;
     }
+    
+    console.log('🔄 Forecast form reset');
+}
+
+// Add debug info function
+function showDebugInfo() {
+    const debugInfo = {
+        'CSRF Token': $('meta[name="csrf-token"]').attr('content') ? '✅ Available' : '❌ Missing',
+        'jQuery': typeof $ !== 'undefined' ? '✅ Loaded' : '❌ Not loaded',
+        'Bootstrap': typeof bootstrap !== 'undefined' ? '✅ Loaded' : '❌ Not loaded',
+        'Current URL': window.location.href,
+        'User Agent': navigator.userAgent,
+        'Timestamp': new Date().toISOString()
+    };
+    
+    console.group('🔍 Debug Information');
+    Object.entries(debugInfo).forEach(([key, value]) => {
+        console.log(`${key}: ${value}`);
+    });
+    console.groupEnd();
+    
+    return debugInfo;
 }
 
 function exportResults() {
@@ -603,4 +817,4 @@ function exportResults() {
     console.log('Export forecast results');
 }
 </script>
-@endsection
+@endpush

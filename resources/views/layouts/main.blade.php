@@ -714,6 +714,15 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 
+    <!-- Global CSRF Token Setup for AJAX -->
+    <script>
+        // Setup CSRF token for all AJAX requests
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+    </script>
 
     @stack('scripts')
 </body>

@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
@@ -523,7 +524,7 @@ class EmployeeController extends Controller
             DB::commit();
 
             // Clear cache after successful import
-            $this->cacheService->invalidateEmployeesCache();
+            $this->cacheService->invalidateEmployeeData();
 
             $message = "Import completed! Imported: {$stats['imported']}, Skipped: {$stats['skipped']}";
             

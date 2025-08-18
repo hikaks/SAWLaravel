@@ -405,7 +405,7 @@
 </style>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 $(document).ready(function() {
     loadRecentAnalysis();
@@ -595,4 +595,4 @@ function showInfoToast(message) {
     console.log('Info:', message);
 }
 </script>
-@endsection
+@endpush

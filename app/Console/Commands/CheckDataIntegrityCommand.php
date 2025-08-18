@@ -204,7 +204,9 @@ class CheckDataIntegrityCommand extends Command
             foreach ($duplicates as $duplicate) {
                 $employee = Employee::find($duplicate->employee_id);
                 $criteria = Criteria::find($duplicate->criteria_id);
-                $this->line("    {$employee->name ?? 'Unknown'} - {$criteria->name ?? 'Unknown'} - {$duplicate->evaluation_period} ({$duplicate->count} records)");
+                $employeeName = $employee->name ?? 'Unknown';
+                $criteriaName = $criteria->name ?? 'Unknown';
+                $this->line("    {$employeeName} - {$criteriaName} - {$duplicate->evaluation_period} ({$duplicate->count} records)");
             }
             
             if ($this->option('fix')) {

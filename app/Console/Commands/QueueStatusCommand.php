@@ -264,34 +264,61 @@ class QueueStatusCommand extends Command
 
         $startTime = time();
         $lastStats = null;
+        $isRunning = true;
 
-        while (true) {
-            $currentStats = $this->getQueueStatistics();
+        // Set up signal handler for graceful shutdown
+        if (function_exists('pcntl_signal')) {
+            pcntl_signal(SIGINT, function () use (&$isRunning) {
+                $isRunning = false;
+            });
+        }
 
-            // Only show if stats changed
-            if ($lastStats !== $currentStats) {
-                $this->output->write("\033[2J\033[H"); // Clear screen
+        try {
+            while ($isRunning) {
+                // Check for signals if pcntl is available
+                if (function_exists('pcntl_signal_dispatch')) {
+                    pcntl_signal_dispatch();
+                }
 
-                $this->info('🔄 QUEUE MONITORING - ' . date('Y-m-d H:i:s'));
-                $this->line('');
+                $currentStats = $this->getQueueStatistics();
 
-                $this->table(
-                    ['Queue', 'Pending', 'Running', 'Completed', 'Failed'],
-                    [
-                        ['high', $currentStats['high']['pending'], $currentStats['high']['running'], $currentStats['high']['completed'], $currentStats['high']['failed']],
-                        ['default', $currentStats['default']['pending'], $currentStats['default']['running'], $currentStats['default']['completed'], $currentStats['default']['failed']],
-                        ['low', $currentStats['low']['pending'], $currentStats['low']['running'], $currentStats['low']['completed'], $currentStats['low']['failed']],
-                    ]
-                );
+                // Only show if stats changed
+                if ($lastStats !== $currentStats) {
+                    $this->output->write("\033[2J\033[H"); // Clear screen
 
-                $this->line('');
-                $this->info("📊 Total: {$currentStats['total']['pending']} pending, {$currentStats['total']['running']} running, {$currentStats['total']['completed']} completed, {$currentStats['total']['failed']} failed");
-                $this->line("⏱️  Uptime: " . $this->formatUptime(time() - $startTime));
+                    $this->info('🔄 QUEUE MONITORING - ' . date('Y-m-d H:i:s'));
+                    $this->line('');
 
-                $lastStats = $currentStats;
+                    $this->table(
+                        ['Queue', 'Pending', 'Running', 'Completed', 'Failed'],
+                        [
+                            ['high', $currentStats['high']['pending'], $currentStats['high']['running'], $currentStats['high']['completed'], $currentStats['high']['failed']],
+                            ['default', $currentStats['default']['pending'], $currentStats['default']['running'], $currentStats['default']['completed'], $currentStats['default']['failed']],
+                            ['low', $currentStats['low']['pending'], $currentStats['low']['running'], $currentStats['low']['completed'], $currentStats['low']['failed']],
+                        ]
+                    );
+
+                    $this->line('');
+                    $this->info("📊 Total: {$currentStats['total']['pending']} pending, {$currentStats['total']['running']} running, {$currentStats['total']['completed']} completed, {$currentStats['total']['failed']} failed");
+                    $this->line("⏱️  Uptime: " . $this->formatUptime(time() - $startTime));
+
+                    $lastStats = $currentStats;
+                }
+
+                // Check if we should continue running
+                if (!$isRunning) {
+                    break;
+                }
+
+                sleep(2); // Update every 2 seconds
             }
 
-            sleep(2); // Update every 2 seconds
+            $this->info('🛑 Monitoring stopped gracefully.');
+            return Command::SUCCESS;
+
+        } catch (\Exception $e) {
+            $this->error('Monitoring stopped due to error: ' . $e->getMessage());
+            return Command::FAILURE;
         }
     }
 

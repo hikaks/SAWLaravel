@@ -10,6 +10,7 @@ use App\Services\SAWCalculationService;
 use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\SawResultsExport;
@@ -33,9 +34,11 @@ class EvaluationResultController extends Controller
     {
         if ($request->ajax()) {
             $period = $request->get('period');
+            Log::info('EvaluationResultController: AJAX request with period: ' . ($period ?? 'null'));
 
-            // Use cache for results if period is specified
-            if ($period) {
+            // Use cache for results based on period
+            if ($period && $period !== 'all') {
+                // Specific period
                 $results = $this->cacheService->getSAWResults($period, function() use ($period) {
                     return EvaluationResult::with('employee:id,name,employee_code,department,position')
                         ->select('id', 'employee_id', 'total_score', 'ranking', 'evaluation_period')
@@ -43,15 +46,27 @@ class EvaluationResultController extends Controller
                         ->orderBy('ranking')
                         ->get();
                 });
+                Log::info('EvaluationResultController: Specific period results count: ' . $results->count());
             } else {
-                // For all periods, cache with different key
+                // All periods or no period specified
                 $results = $this->cacheService->getSAWResults('all_periods', function() {
                     return EvaluationResult::with('employee:id,name,employee_code,department,position')
                         ->select('id', 'employee_id', 'total_score', 'ranking', 'evaluation_period')
+                        ->orderBy('evaluation_period', 'desc')
                         ->orderBy('ranking')
                         ->get();
                 });
+                Log::info('EvaluationResultController: All periods results count: ' . $results->count());
             }
+
+            Log::info('EvaluationResultController: About to create DataTable response', [
+                'results_count' => $results->count(),
+                'first_result' => $results->first() ? [
+                    'id' => $results->first()->id,
+                    'employee_id' => $results->first()->employee_id,
+                    'period' => $results->first()->evaluation_period
+                ] : null
+            ]);
 
             return DataTables::of($results)
                 ->addIndexColumn()
@@ -106,10 +121,20 @@ class EvaluationResultController extends Controller
         }
 
         // Cache evaluation periods for navigation
+        // Get periods from both evaluation_results and evaluations tables
         $periods = $this->cacheService->getEvaluationPeriods(function() {
-            return EvaluationResult::distinct('evaluation_period')
-                ->orderByDesc('evaluation_period')
+            $resultPeriods = EvaluationResult::distinct('evaluation_period')
                 ->pluck('evaluation_period');
+            
+            $evaluationPeriods = Evaluation::distinct('evaluation_period')
+                ->pluck('evaluation_period');
+            
+            // Merge and get unique periods, sorted descending
+            return $resultPeriods->merge($evaluationPeriods)
+                ->unique()
+                ->sort()
+                ->reverse()
+                ->values();
         });
 
         return view('results.index', compact('periods'));
@@ -156,15 +181,20 @@ class EvaluationResultController extends Controller
     public function getChartData(Request $request)
     {
         $type = $request->get('type');
-        $period = $request->get('period', 'all');
+        $period = $request->get('period');
+        
+        // Handle null or empty period
+        if (empty($period)) {
+            $period = 'all';
+        }
 
         // Cache chart data based on type and period
         $chartData = $this->cacheService->getChartData($type, $period, function() use ($type, $period) {
             switch ($type) {
                 case 'top_performers':
-                    return $this->getTopPerformersChart($period);
+                    return $this->getTopPerformersChart($period === 'all' ? null : $period);
                 case 'department_comparison':
-                    return $this->getDepartmentComparisonChart($period);
+                    return $this->getDepartmentComparisonChart($period === 'all' ? null : $period);
                 default:
                     return response()->json(['error' => 'Invalid chart type'], 400);
             }
@@ -312,7 +342,7 @@ class EvaluationResultController extends Controller
 
         } catch (\Exception $e) {
             // Log the error for debugging
-            \Log::error('PDF Export Error: ' . $e->getMessage(), [
+            Log::error('PDF Export Error: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
@@ -405,7 +435,7 @@ class EvaluationResultController extends Controller
             return $pdf->download($filename);
 
         } catch (\Exception $e) {
-            \Log::error('Simple PDF Export Error: ' . $e->getMessage());
+            Log::error('Simple PDF Export Error: ' . $e->getMessage());
             return back()->with('error', 'Gagal mengexport PDF (Simple): ' . $e->getMessage());
         }
     }

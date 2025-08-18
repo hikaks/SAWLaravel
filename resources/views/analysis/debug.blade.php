@@ -267,7 +267,7 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 function testSensitivityAnalysis() {
     showTestLoading('Testing Sensitivity Analysis...');
@@ -386,4 +386,4 @@ ${JSON.stringify(data, null, 2)}
     $('#testOutput').html(resultHtml);
 }
 </script>
-@endsection
+@endpush

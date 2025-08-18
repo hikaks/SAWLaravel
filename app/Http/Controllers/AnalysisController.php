@@ -148,8 +148,21 @@ class AnalysisController extends Controller
         $validator = Validator::make($request->all(), [
             'periods' => 'required|array|min:2|max:6',
             'periods.*' => 'required|string',
-            'employee_id' => 'sometimes|exists:employees,id'
+            'comparison_type' => 'sometimes|in:all,specific,department',
+            'employee_id' => 'sometimes|exists:employees,id',
+            'department_id' => 'sometimes|string'
         ]);
+        
+        // Custom validation for department_id
+        if ($request->has('department_id') && !empty($request->input('department_id'))) {
+            $departmentExists = Employee::where('department', $request->input('department_id'))->exists();
+            if (!$departmentExists) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['department_id' => ['The selected department does not exist.']]
+                ], 422);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -160,11 +173,13 @@ class AnalysisController extends Controller
 
         try {
             $periods = $request->input('periods');
+            $comparisonType = $request->input('comparison_type', 'all');
             $employeeId = $request->input('employee_id');
+            $departmentId = $request->input('department_id');
 
-            $cacheKey = "multi_period_comparison_" . md5(json_encode($periods) . "_" . ($employeeId ?? 'all'));
-            $results = $this->cacheService->remember($cacheKey, 1800, function() use ($periods, $employeeId) {
-                return $this->analysisService->multiPeriodComparison($periods, $employeeId);
+            $cacheKey = "multi_period_comparison_" . md5(json_encode($periods) . "_" . $comparisonType . "_" . ($employeeId ?? 'all') . "_" . ($departmentId ?? 'all'));
+            $results = $this->cacheService->remember($cacheKey, 1800, function() use ($periods, $comparisonType, $employeeId, $departmentId) {
+                return $this->analysisService->multiPeriodComparison($periods, $comparisonType, $employeeId, $departmentId);
             });
 
             return response()->json([
@@ -227,7 +242,10 @@ class AnalysisController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
-            'periods_ahead' => 'sometimes|integer|min:1|max:12'
+            'periods_ahead' => 'sometimes|integer|min:1|max:12',
+            'methods' => 'sometimes|array',
+            'methods.*' => 'sometimes|in:linear_trend,moving_average,weighted_average',
+            'confidence_level' => 'sometimes|numeric|min:0.5|max:0.99'
         ]);
 
         if ($validator->fails()) {
@@ -240,10 +258,12 @@ class AnalysisController extends Controller
         try {
             $employeeId = $request->input('employee_id');
             $periodsAhead = $request->input('periods_ahead', 3);
+            $methods = $request->input('methods', ['linear_trend', 'moving_average', 'weighted_average']);
+            $confidenceLevel = $request->input('confidence_level', 0.95);
 
-            $cacheKey = "performance_forecast_{$employeeId}_{$periodsAhead}";
-            $results = $this->cacheService->remember($cacheKey, 1800, function() use ($employeeId, $periodsAhead) {
-                return $this->analysisService->performanceForecast($employeeId, $periodsAhead);
+            $cacheKey = "performance_forecast_{$employeeId}_{$periodsAhead}_" . md5(json_encode($methods) . "_{$confidenceLevel}");
+            $results = $this->cacheService->remember($cacheKey, 1800, function() use ($employeeId, $periodsAhead, $methods, $confidenceLevel) {
+                return $this->analysisService->performanceForecast($employeeId, $periodsAhead, $methods, $confidenceLevel);
             });
 
             return response()->json([
@@ -444,6 +464,36 @@ class AnalysisController extends Controller
         }
     }
     
+    /**
+     * Get employee historical data for forecasting
+     */
+    public function getEmployeeHistoricalData(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|exists:employees,id'
+        ]);
+
+        $employeeId = $request->input('employee_id');
+        
+        // Get historical evaluation results for the employee
+        $historicalData = EvaluationResult::where('employee_id', $employeeId)
+            ->with(['employee'])
+            ->orderBy('evaluation_period')
+            ->get()
+            ->map(function ($result) {
+                return [
+                    'evaluation_period' => $result->evaluation_period,
+                    'total_score' => $result->total_score,
+                    'ranking' => $result->ranking
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $historicalData
+        ]);
+    }
+
     /**
      * Debug view for troubleshooting
      */

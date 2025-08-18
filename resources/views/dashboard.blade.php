@@ -57,76 +57,47 @@
 
 <!-- Main Content Grid - Improved Layout -->
 <div class="row g-4">
-    <!-- Top Performers Card - Reduced Height -->
+    <!-- Top 10 Performers Card - Simplified -->
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 d-flex align-items-center">
-                        <i class="fas fa-ranking-star me-2" style="color: #f59e0b;"></i>
-                        {{ __('Top Performers') }}
+                        <i class="fas fa-trophy me-2" style="color: #f59e0b;"></i>
+                        {{ __('Top 10 Performers') }}
                     </h6>
-                    @if($topPerformers->count() > 0)
-                        <span class="badge bg-primary">{{ $topPerformers->first()->evaluation_period ?? 'Latest' }}</span>
-                    @endif
+                    <a href="{{ route('results.index') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>
+                        {{ __('View All Results') }}
+                    </a>
                 </div>
             </div>
             <div class="card-body">
                 @if($topPerformers->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>{{ __('Rank') }}</th>
-                                    <th>{{ __('Employee') }}</th>
-                                    <th>{{ __('Department') }}</th>
-                                    <th>{{ __('Score') }}</th>
-                                    <th>{{ __('Category') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($topPerformers as $performer)
-                                <tr>
-                                    <td>
-                                        <span class="badge bg-{{ $performer->ranking <= 3 ? 'success' : 'secondary' }}">
-                                            #{{ $performer->ranking }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar me-3">
-                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                                                     style="width: 36px; height: 36px; font-size: 13px; font-weight: 600;">
-                                                    {{ substr($performer->employee->name, 0, 2) }}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold">{{ $performer->employee->name }}</div>
-                                                <small class="text-muted">{{ $performer->employee->employee_code }}</small>
-                                            </div>
+                    <div class="row g-3">
+                        @foreach($topPerformers->take(10) as $index => $performer)
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="bg-{{ $index < 3 ? 'success' : 'primary' }} text-white rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width: 40px; height: 40px; font-size: 14px; font-weight: 600;">
+                                        #{{ $index + 1 }}
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">{{ $performer->employee->name }}</div>
+                                    <div class="text-muted small">{{ $performer->employee->department }}</div>
+                                    <div class="d-flex align-items-center mt-1">
+                                        <div class="progress flex-grow-1 me-2" style="height: 4px;">
+                                            <div class="progress-bar bg-{{ $index < 3 ? 'success' : 'primary' }}"
+                                                 style="width: {{ round($performer->total_score * 100, 2) }}%"></div>
                                         </div>
-                                    </td>
-                                    <td>{{ $performer->employee->department }}</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-grow-1">
-                                                <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar bg-{{ $performer->ranking <= 3 ? 'success' : 'primary' }}"
-                                                         style="width: {{ round($performer->total_score * 100, 2) }}%"></div>
-                                                </div>
-                                            </div>
-                                            <small class="ms-2 fw-semibold">{{ round($performer->total_score * 100, 2) }}%</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ $performer->ranking <= 3 ? 'success' : ($performer->ranking <= 10 ? 'warning' : 'secondary') }}">
-                                            {{ $performer->ranking_category }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                        <small class="fw-semibold">{{ round($performer->total_score * 100, 2) }}%</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
                     </div>
                 @else
                     <div class="text-center py-4">
@@ -190,34 +161,38 @@
 
 <!-- Bottom Section - Four Equal Columns for Better Balance -->
 <div class="row g-4 mt-3">
-    <!-- Department Distribution -->
+    <!-- Department Comparison -->
     <div class="col-lg-3 col-md-6">
         <div class="card h-100">
             <div class="card-header">
                 <h6 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-building me-2" style="color: #10b981;"></i>
-                    {{ __('Departments') }}
+                    <i class="fas fa-chart-bar me-2" style="color: #10b981;"></i>
+                    {{ __('Department Comparison') }}
                 </h6>
             </div>
             <div class="card-body">
                 @if($departmentStats->count() > 0)
-                    @foreach($departmentStats->take(3) as $dept)
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-2"
-                                 style="width: 32px; height: 32px;">
-                                <i class="fas fa-users text-primary" style="font-size: 14px;"></i>
-                            </div>
-                            <div>
-                                <div class="fw-semibold small">{{ $dept->department }}</div>
-                                <small class="text-muted">{{ $dept->count }} {{ __('employees') }}</small>
-                            </div>
+                    @foreach($departmentStats->take(5) as $dept)
+                    @php
+                        $percentage = $stats['total_employees'] > 0 ? round(($dept->count / $stats['total_employees']) * 100, 1) : 0;
+                        $color = $percentage >= 30 ? 'success' : ($percentage >= 20 ? 'warning' : 'info');
+                    @endphp
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold small">{{ $dept->department }}</span>
+                            <span class="badge bg-{{ $color }}">{{ $dept->count }}</span>
                         </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-{{ $color }}" 
+                                 style="width: {{ $percentage }}%"
+                                 title="{{ $percentage }}% of total employees"></div>
+                        </div>
+                        <small class="text-muted">{{ $percentage }}% {{ __('of total') }}</small>
                     </div>
                     @endforeach
-                    @if($departmentStats->count() > 3)
+                    @if($departmentStats->count() > 5)
                         <div class="text-center mt-2">
-                            <small class="text-muted">+{{ $departmentStats->count() - 3 }} more</small>
+                            <small class="text-muted">+{{ $departmentStats->count() - 5 }} {{ __('more departments') }}</small>
                         </div>
                     @endif
                 @else
