@@ -9,12 +9,12 @@
 @endphp
 
 <!-- Header Section -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
-        <h1 class="h3 mb-1 fw-bold">{{ __('Employee Profile') }}</h1>
-        <p class="text-muted mb-0">{{ __('Complete information and performance overview') }}</p>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Employee Profile') }}</h1>
+        <p class="text-gray-600">{{ __('Complete information and performance overview') }}</p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
         <x-ui.button 
             href="{{ route('employees.edit', $employee->id) }}" 
             variant="warning" 
@@ -31,462 +31,381 @@
 </div>
 
 <!-- Employee Profile Card -->
-<div class="card mb-4" style="background: linear-gradient(135deg, #0366d6 0%, #0256c7 100%);">
-    <div class="card-body text-white py-5">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <div class="position-relative">
-                    <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center"
-                         style="width: 100px; height: 100px; font-size: 2.5rem; font-weight: 700; color: white;">
-                        {{ strtoupper(substr($employee->name, 0, 2)) }}
+<div class="card mb-6 bg-gradient-to-br from-primary-500 to-primary-600 text-white overflow-hidden">
+    <div class="card-body py-8">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+            <div class="relative">
+                <div class="w-24 h-24 bg-white/25 rounded-full flex items-center justify-center text-3xl font-bold text-white">
+                    {{ strtoupper(substr($employee->name, 0, 2)) }}
+                </div>
+                @if($employee->status === 'active')
+                    <span class="absolute -bottom-1 -right-1 w-6 h-6 bg-success-500 border-2 border-white rounded-full"></span>
+                @else
+                    <span class="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-400 border-2 border-white rounded-full"></span>
+                @endif
+            </div>
+            <div class="text-center md:text-left flex-1">
+                <h1 class="text-3xl font-bold mb-2">{{ $employee->name }}</h1>
+                <p class="text-xl mb-2 text-white/75">{{ $employee->position }}</p>
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 text-white/90">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-building"></i>
+                        <span>{{ $employee->department }}</span>
                     </div>
-                    <span class="position-absolute bottom-0 end-0 translate-middle p-2 bg-success border border-white rounded-circle">
-                        <span class="visually-hidden">{{ __('Active') }}</span>
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-hashtag"></i>
+                        <span>{{ $employee->employee_code }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ __('Since') }} {{ $employee->hire_date?->format('M Y') }}</span>
+                    </div>
+                </div>
+                @if($latestResult)
+                    <div class="mt-4 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-white/90">{{ __('Latest Performance Score') }}</span>
+                            <span class="text-xl font-bold">{{ round($latestResult->total_score * 100, 2) }}%</span>
+                        </div>
+                        <div class="w-full bg-white/20 rounded-full h-2 mt-2">
+                            <div class="bg-white h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ round($latestResult->total_score * 100, 2) }}%"></div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Personal Information -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Information -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-user text-primary-500"></i>
+                    {{ __('Basic Information') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Full Name') }}</label>
+                            <p class="text-gray-900 font-medium">{{ $employee->name }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Employee Code') }}</label>
+                            <p class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-900 inline-block">{{ $employee->employee_code }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Position') }}</label>
+                            <p class="text-gray-900 font-medium">{{ $employee->position }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Department') }}</label>
+                            <span class="badge badge-primary">{{ $employee->department }}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Hire Date') }}</label>
+                            <p class="text-gray-900">{{ $employee->hire_date?->format('M d, Y') }}</p>
+                        </div>
+                        @if($employee->birth_date)
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Date of Birth') }}</label>
+                            <p class="text-gray-900">{{ $employee->birth_date->format('M d, Y') }}</p>
+                        </div>
+                        @endif
+                        @if($employee->salary)
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Salary') }}</label>
+                            <p class="text-gray-900 font-medium">${{ number_format($employee->salary, 2) }}</p>
+                        </div>
+                        @endif
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Status') }}</label>
+                            @if($employee->status === 'active')
+                                <span class="badge badge-success">{{ __('Active') }}</span>
+                            @else
+                                <span class="badge badge-danger">{{ __('Inactive') }}</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col">
-                <h1 class="display-6 fw-bold mb-2">{{ $employee->name }}</h1>
-                <p class="fs-5 mb-2 opacity-75">{{ $employee->position }}</p>
-                <p class="mb-3 opacity-75">{{ $employee->department }}</p>
-                <span class="badge bg-white text-primary fs-6 px-3 py-2 rounded-pill">{{ $employee->employee_code }}</span>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-address-book text-primary-500"></i>
+                    {{ __('Contact Information') }}
+                </h6>
             </div>
-            <div class="col-auto">
-                <div class="d-flex flex-column gap-2">
-                    <a href="{{ route('evaluations.create', ['employee_id' => $employee->id]) }}" class="btn btn-success">
-                        <i class="fas fa-clipboard-check me-2"></i>{{ __('Evaluate') }}
-                    </a>
-                    @if($latestResult)
-                    <a href="{{ route('results.details', ['employee' => $employee->id, 'period' => $latestResult->evaluation_period]) }}" class="btn btn-light">
-                        <i class="fas fa-chart-line me-2"></i>{{ __('Performance') }}
-                    </a>
+            <div class="card-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Email Address') }}</label>
+                        <p class="text-gray-900">
+                            <a href="mailto:{{ $employee->email }}" class="text-primary-600 hover:text-primary-700">
+                                {{ $employee->email }}
+                            </a>
+                        </p>
+                    </div>
+                    @if($employee->phone)
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Phone Number') }}</label>
+                        <p class="text-gray-900">
+                            <a href="tel:{{ $employee->phone }}" class="text-primary-600 hover:text-primary-700">
+                                {{ $employee->phone }}
+                            </a>
+                        </p>
+                    </div>
+                    @endif
+                    @if($employee->address)
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-medium text-gray-500">{{ __('Address') }}</label>
+                        <p class="text-gray-900">{{ $employee->address }}</p>
+                    </div>
                     @endif
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Stats Section -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #0366d6 0%, #0256c7 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $employee->evaluations->groupBy('evaluation_period')->count() }}</div>
-                <div class="stats-label">{{ __('Evaluation Periods') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-calendar"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $employee->evaluations->count() }}</div>
-                <div class="stats-label">{{ __('Total Evaluations') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-clipboard-check"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-            <div class="stats-content">
-                <div class="stats-number">
-                    {{ $latestResult ? '#'.$latestResult->ranking : '-' }}
-                </div>
-                <div class="stats-label">{{ __('Current Ranking') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-trophy"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stats-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $latestResult ? number_format($latestResult->total_score * 100, 1) . '%' : '-' }}</div>
-                <div class="stats-label">{{ __('Latest Score') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Information Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-md-6">
+        <!-- Performance History -->
+        @if($employee->evaluationResults->count() > 0)
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0 fw-semibold">
-                    <i class="fas fa-address-card me-2 text-primary"></i>
-                    {{ __('Contact Information') }}
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-sm-6">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block mb-1">{{ __('Email Address') }}</small>
-                            <div class="fw-semibold text-break">
-                                <a href="mailto:{{ $employee->email }}" class="text-decoration-none">{{ $employee->email }}</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block mb-1">{{ __('Department') }}</small>
-                            <div class="fw-semibold">{{ $employee->department }}</div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block mb-1">{{ __('Joined Date') }}</small>
-                            <div class="fw-semibold">{{ $employee->created_at->format('d M Y') }}</div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block mb-1">{{ __('Last Updated') }}</small>
-                            <div class="fw-semibold">{{ $employee->updated_at->diffForHumans() }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        @if($latestResult)
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0 fw-semibold">
-                    <i class="fas fa-chart-bar me-2 text-success"></i>
-                    {{ __('Latest Performance') }}
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="text-center p-3 bg-primary text-white rounded">
-                            <div class="h4 fw-bold mb-1">{{ number_format($latestResult->total_score * 100, 1) }}%</div>
-                            <small class="fw-medium">{{ __('Score') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-center p-3 bg-success text-white rounded">
-                            <div class="h4 fw-bold mb-1">#{{ $latestResult->ranking }}</div>
-                            <small class="fw-medium">{{ __('Rank') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-center p-3 bg-info text-white rounded">
-                            <div class="h6 fw-bold mb-1">
-                                @if($latestResult->ranking <= 3)
-                                    {{ __('Excellent') }}
-                                @elseif($latestResult->ranking <= 10)
-                                    {{ __('Good') }}
-                                @else
-                                    {{ __('Average') }}
-                                @endif
-                            </div>
-                            <small class="fw-medium">{{ __('Category') }}</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-center p-3 bg-warning text-white rounded">
-                            <div class="h6 fw-bold mb-1">{{ $latestResult->evaluation_period }}</div>
-                            <small class="fw-medium">{{ __('Period') }}</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @else
-        <div class="card">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">{{ __('No Performance Data') }}</h5>
-                <p class="text-muted">{{ __('No evaluation results available yet') }}</p>
-                <a href="{{ route('evaluations.create', ['employee_id' => $employee->id]) }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i>{{ __('Start Evaluation') }}
-                </a>
-            </div>
-        </div>
-        @endif
-    </div>
-</div>
-
-<!-- Evaluation History -->
-<div class="card">
-    <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-semibold">
-                <i class="fas fa-history me-2 text-primary"></i>
-                {{ __('Evaluation History') }}
-            </h5>
-            @if($evaluationsByPeriod->count() > 1)
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-filter me-2"></i>
-                    {{ __('Filter Period') }}
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="filterEvaluations('')">{{ __('All Periods') }}</a></li>
-                    @foreach($evaluationsByPeriod->keys() as $period)
-                    <li><a class="dropdown-item" href="#" onclick="filterEvaluations('{{ $period }}')">{{ $period }}</a></li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
-        </div>
-    </div>
-    <div class="card-body">
-        @if($evaluationsByPeriod->count() > 0)
-            @foreach($evaluationsByPeriod as $period => $evaluations)
-            <div class="evaluation-period mb-4" data-period="{{ $period }}">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="text-primary fw-bold mb-0">
-                        <i class="fas fa-calendar me-2"></i>
-                        {{ __('Period') }}: {{ $period }}
+                <div class="flex items-center justify-between">
+                    <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                        <i class="fas fa-chart-line text-primary-500"></i>
+                        {{ __('Performance History') }}
                     </h6>
-                    <span class="badge bg-primary px-3 py-2">
-                        {{ $evaluations->count() }} {{ __('criteria') }}
-                    </span>
+                    <x-ui.button 
+                        href="{{ route('results.details', ['employee' => $employee->id, 'period' => 'all']) }}" 
+                        variant="outline-primary" 
+                        size="sm">
+                        {{ __('View All') }}
+                    </x-ui.button>
                 </div>
-
-                <div class="row g-3">
-                    @foreach($evaluations as $evaluation)
-                    <div class="col-lg-4 col-md-6">
-                        <div class="card border-0 bg-light h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="flex-grow-1">
-                                        <h6 class="fw-bold mb-2">{{ $evaluation->criteria->name }}</h6>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge fs-6 px-3 py-2 {{ $evaluation->score >= 80 ? 'bg-success' : ($evaluation->score >= 60 ? 'bg-warning' : 'bg-danger') }}">
-                                                {{ $evaluation->score }}
-                                            </span>
-                                            <span class="text-muted">/ 100</span>
-                                        </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="small text-muted mb-1">{{ __('Weight') }}: {{ $evaluation->criteria->weight }}%</div>
-                                        <span class="badge bg-secondary">{{ ucfirst($evaluation->criteria->type) }}</span>
-                                    </div>
-                                </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar {{ $evaluation->score >= 80 ? 'bg-success' : ($evaluation->score >= 60 ? 'bg-warning' : 'bg-danger') }}"
-                                         style="width: {{ $evaluation->score }}%"></div>
-                                </div>
+            </div>
+            <div class="card-body">
+                <div class="space-y-4">
+                    @foreach($employee->evaluationResults->take(5) as $result)
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <div class="font-medium text-gray-900">{{ $result->evaluation_period }}</div>
+                            <div class="text-sm text-gray-500">{{ $result->created_at->format('M d, Y') }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-gray-900">{{ round($result->total_score * 100, 2) }}%</div>
+                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full transition-all duration-300" 
+                                     style="width: {{ round($result->total_score * 100, 2) }}%"></div>
                             </div>
                         </div>
                     </div>
                     @endforeach
                 </div>
+            </div>
+        </div>
+        @endif
 
-                @if(!$loop->last)
-                <hr class="my-4">
+        <!-- Notes -->
+        @if($employee->notes)
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-sticky-note text-primary-500"></i>
+                    {{ __('Notes') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-gray-700 whitespace-pre-wrap">{{ $employee->notes }}</p>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-bolt text-warning-500"></i>
+                    {{ __('Quick Actions') }}
+                </h6>
+            </div>
+            <div class="card-body space-y-3">
+                <x-ui.button 
+                    href="{{ route('evaluations.create', ['employee' => $employee->id]) }}" 
+                    variant="primary" 
+                    size="sm"
+                    icon="fas fa-plus"
+                    class="w-full justify-start">
+                    {{ __('New Evaluation') }}
+                </x-ui.button>
+                
+                <x-ui.button 
+                    href="{{ route('employees.edit', $employee->id) }}" 
+                    variant="outline-warning" 
+                    size="sm"
+                    icon="fas fa-edit"
+                    class="w-full justify-start">
+                    {{ __('Edit Information') }}
+                </x-ui.button>
+                
+                @if($latestResult)
+                <x-ui.button 
+                    href="{{ route('results.export-employee', $employee->id) }}" 
+                    variant="outline-success" 
+                    size="sm"
+                    icon="fas fa-download"
+                    class="w-full justify-start">
+                    {{ __('Export Report') }}
+                </x-ui.button>
                 @endif
+                
+                <div class="pt-2 border-t border-gray-200">
+                    <x-ui.button 
+                        onclick="confirmDelete()" 
+                        variant="outline-danger" 
+                        size="sm"
+                        icon="fas fa-trash"
+                        class="w-full justify-start">
+                        {{ __('Delete Employee') }}
+                    </x-ui.button>
+                </div>
             </div>
-            @endforeach
-        @else
-            <div class="text-center py-5">
-                <i class="fas fa-clipboard fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted mb-3">{{ __('No Evaluations Yet') }}</h5>
-                <p class="text-muted mb-4">{{ __('This employee has no evaluation data yet.') }}</p>
-                <a href="{{ route('evaluations.create', ['employee_id' => $employee->id]) }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>
-                    {{ __('Create First Evaluation') }}
-                </a>
+        </div>
+
+        <!-- Statistics -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-chart-pie text-info-500"></i>
+                    {{ __('Statistics') }}
+                </h6>
             </div>
+            <div class="card-body space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Total Evaluations') }}</span>
+                    <span class="font-semibold text-gray-900">{{ $employee->evaluationResults->count() }}</span>
+                </div>
+                
+                @if($employee->evaluationResults->count() > 0)
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Average Score') }}</span>
+                    <span class="font-semibold text-gray-900">{{ round($employee->evaluationResults->avg('total_score') * 100, 2) }}%</span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Best Score') }}</span>
+                    <span class="font-semibold text-success-600">{{ round($employee->evaluationResults->max('total_score') * 100, 2) }}%</span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Last Evaluation') }}</span>
+                    <span class="text-gray-900">{{ $employee->evaluationResults->first()?->created_at->diffForHumans() }}</span>
+                </div>
+                @endif
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Years of Service') }}</span>
+                    <span class="font-semibold text-gray-900">{{ $employee->hire_date?->diffInYears(now()) ?? 0 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        @if($employee->evaluationResults->count() > 0)
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-clock text-gray-500"></i>
+                    {{ __('Recent Activity') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="space-y-3">
+                    @foreach($employee->evaluationResults->take(3) as $result)
+                    <div class="flex items-start gap-3">
+                        <div class="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-900 font-medium">{{ __('Evaluation completed') }}</p>
+                            <p class="text-xs text-gray-500">{{ $result->evaluation_period }} • {{ $result->created_at->diffForHumans() }}</p>
+                        </div>
+                        <div class="text-sm font-medium text-primary-600">{{ round($result->total_score * 100, 2) }}%</div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
         @endif
     </div>
 </div>
 
-<!-- Performance Chart -->
-@if($employee->evaluationResults->count() > 1)
-<div class="card mt-4">
-    <div class="card-header">
-        <h5 class="mb-0 fw-semibold">
-            <i class="fas fa-chart-line me-2 text-success"></i>
-            {{ __('Performance Trend') }}
-        </h5>
-    </div>
-    <div class="card-body">
-        <div style="position: relative; height: 400px;">
-            <canvas id="performanceChart"></canvas>
+<!-- Delete Confirmation Modal -->
+<div x-data="{ showDeleteModal: false }" x-show="showDeleteModal" class="modal" x-transition>
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+        <div class="modal-content modal-confirm modal-danger">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ __('Delete Employee') }}</h5>
+                <button @click="showDeleteModal = false" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Are you sure?') }}</h4>
+                <p class="text-gray-600 mb-4">
+                    {{ __('This will permanently delete') }} <strong>{{ $employee->name }}</strong> {{ __('and all associated evaluation data. This action cannot be undone.') }}
+                </p>
+                <div class="bg-danger-50 border border-danger-200 rounded-lg p-3">
+                    <p class="text-sm text-danger-700">
+                        <strong>{{ __('Warning') }}:</strong> {{ __('All evaluation results and performance data will be lost.') }}
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @click="showDeleteModal = false" class="btn btn-secondary">
+                    {{ __('Cancel') }}
+                </button>
+                <form action="{{ route('employees.destroy', $employee->id) }}" method="POST" class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash mr-2"></i>
+                        {{ __('Delete Employee') }}
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
-@endif
 @endsection
 
 @push('scripts')
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-$(document).ready(function() {
-    @if($employee->evaluationResults->count() > 1)
-    // Performance Trend Chart
-    const ctx = document.getElementById('performanceChart').getContext('2d');
-    const results = @json($employee->evaluationResults->sortBy('evaluation_period')->values());
+function confirmDelete() {
+    Alpine.store('modals', { showDeleteModal: true });
+}
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: results.map(r => r.evaluation_period),
-            datasets: [{
-                label: '{{ __("Total Score (%)") }}',
-                data: results.map(r => Math.round(r.total_score * 100, 2)),
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#0d6efd',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 3,
-                pointRadius: 8
-            }, {
-                label: '{{ __("Ranking") }}',
-                data: results.map(r => r.ranking),
-                borderColor: '#dc3545',
-                backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                tension: 0.4,
-                yAxisID: 'y1',
-                pointBackgroundColor: '#dc3545',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 3,
-                pointRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20,
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                    titleColor: 'white',
-                    bodyColor: 'white',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    padding: 12
-                }
-            },
-            scales: {
-                x: {
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        font: {
-                            size: 12,
-                            weight: '600'
-                        }
-                    }
-                },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: '{{ __("Score (%)") }}',
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    ticks: {
-                        font: {
-                            size: 12
-                        }
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: '{{ __("Ranking") }}',
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        }
-                    },
-                    reverse: true,
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                    ticks: {
-                        font: {
-                            size: 12
-                        }
-                    }
-                }
-            }
-        }
+// Initialize Alpine.js stores
+document.addEventListener('alpine:init', () => {
+    Alpine.store('modals', {
+        showDeleteModal: false
     });
-    @endif
 });
-
-function filterEvaluations(period) {
-    if (period === '') {
-        $('.evaluation-period').show();
-    } else {
-        $('.evaluation-period').hide();
-        $(`.evaluation-period[data-period="${period}"]`).show();
-    }
-}
-
-function exportEmployeeData(employeeId) {
-    // Show export options
-    Swal.fire({
-        title: '{{ __("Export Employee Data") }}',
-        text: '{{ __("Choose export format") }}',
-        icon: 'question',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonText: '<i class="fas fa-file-pdf me-1"></i>{{ __("PDF") }}',
-        denyButtonText: '<i class="fas fa-file-excel me-1"></i>{{ __("Excel") }}',
-        cancelButtonText: '{{ __("Cancel") }}',
-        confirmButtonColor: '#dc3545',
-        denyButtonColor: '#198754',
-        cancelButtonColor: '#6c757d'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Export as PDF
-            window.location.href = `/employees/${employeeId}/export?format=pdf`;
-        } else if (result.isDenied) {
-            // Export as Excel
-            window.location.href = `/employees/${employeeId}/export?format=excel`;
-        }
-    });
-}
 </script>
 @endpush

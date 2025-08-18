@@ -1,9 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Import base styles with Tailwind CSS */
+@import './base.css';
 
-/* Import custom component styles */
-@import './employees.css';
+/* Import component styles */
+@import './components/datatables.css';
+@import './components/modals.css';
+@import './components/dropdowns.css';
+
+/* Import remaining styles */
 @import './criterias.css';
-@import './evaluations.css';
-@import './results.css';
+@import './custom-styles.css';

@@ -1,547 +1,246 @@
 @extends('layouts.main')
 
-@section('title', 'Input Evaluation - SAW Employee Evaluation')
-@section('page-title', 'Input Employee Evaluation')
+@section('title', __('Create Evaluation') . ' - ' . __('SAW Employee Evaluation'))
+@section('page-title', __('Create Evaluation'))
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Create New Evaluation') }}</h1>
+        <p class="text-gray-600">{{ __('Evaluate employee performance based on defined criteria') }}</p>
+    </div>
+    <x-ui.button href="{{ route('evaluations.index') }}" variant="outline-secondary" icon="fas fa-arrow-left">
+        {{ __('Back to List') }}
+    </x-ui.button>
+</div>
+
+<div class="max-w-4xl mx-auto">
+    <form action="{{ route('evaluations.store') }}" method="POST" x-data="evaluationForm()" @submit="handleSubmit">
+        @csrf
+        
+        <!-- Employee Selection -->
+        <div class="card mb-6">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-clipboard-check text-primary me-2"></i>
-                    Employee Evaluation Input Form
-                </h5>
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-user text-primary-500"></i>{{ __('Employee Selection') }}
+                </h6>
             </div>
             <div class="card-body">
-                <form action="{{ route('evaluations.store') }}" method="POST" id="evaluationForm" novalidate>
-                    @csrf
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="employee_id" class="form-label">
-                                    Select Employee <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select @error('employee_id') is-invalid @enderror"
-                                        id="employee_id"
-                                        name="employee_id"
-                                        required>
-                                    <option value="">-- Select Employee --</option>
-                                    @foreach($employees as $employee)
-                                        <option value="{{ $employee->id }}"
-                                                {{ old('employee_id', request('employee_id')) == $employee->id ? 'selected' : '' }}
-                                                data-department="{{ $employee->department }}"
-                                                data-position="{{ $employee->position }}">
-                                            {{ $employee->name }} ({{ $employee->employee_code }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="invalid-feedback" id="employee_id_error">
-                                    @error('employee_id'){{ $message }}@enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="criteria_id" class="form-label">
-                                    Select Criteria <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select @error('criteria_id') is-invalid @enderror"
-                                        id="criteria_id"
-                                        name="criteria_id"
-                                        required>
-                                    <option value="">-- Select Criteria --</option>
-                                    @foreach($criterias as $criteria)
-                                        <option value="{{ $criteria->id }}"
-                                                {{ old('criteria_id') == $criteria->id ? 'selected' : '' }}
-                                                data-weight="{{ $criteria->weight }}"
-                                                data-type="{{ $criteria->type }}">
-                                            {{ $criteria->name }} ({{ $criteria->weight }}%)
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="invalid-feedback" id="criteria_id_error">
-                                    @error('criteria_id'){{ $message }}@enderror
-                                </div>
-                            </div>
-                        </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label for="employee_id" class="form-label">{{ __('Employee') }} <span class="text-danger-500">*</span></label>
+                        <select class="form-select @error('employee_id') border-danger-500 @enderror" id="employee_id" name="employee_id" required>
+                            <option value="">{{ __('Select Employee') }}</option>
+                            @foreach($employees as $employee)
+                                <option value="{{ $employee->id }}" {{ old('employee_id') == $employee->id ? 'selected' : '' }}>
+                                    {{ $employee->name }} ({{ $employee->employee_code }}) - {{ $employee->department }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('employee_id')<p class="text-sm text-danger-600 mt-1">{{ $message }}</p>@enderror
                     </div>
-
-                    <!-- Employee Info Display -->
-                    <div class="row mb-4" id="employeeInfo" style="display: none;">
-                        <div class="col-12">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6 class="card-title">Employee Information</h6>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <small class="text-muted">Department:</small>
-                                            <div id="employeeDepartment">-</div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <small class="text-muted">Position:</small>
-                                            <div id="employeePosition">-</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    
+                    <div class="form-group">
+                        <label for="evaluation_period" class="form-label">{{ __('Evaluation Period') }} <span class="text-danger-500">*</span></label>
+                        <input type="text" class="form-control @error('evaluation_period') border-danger-500 @enderror" 
+                               id="evaluation_period" name="evaluation_period" value="{{ old('evaluation_period') }}" 
+                               placeholder="{{ __('e.g., 2024-Q1, January 2024') }}" required>
+                        @error('evaluation_period')<p class="text-sm text-danger-600 mt-1">{{ $message }}</p>@enderror
                     </div>
-
-                    <!-- Criteria Info Display -->
-                    <div class="row mb-4" id="criteriaInfo" style="display: none;">
-                        <div class="col-12">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6 class="card-title">Criteria Information</h6>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <small class="text-muted">Weight:</small>
-                                            <div><span id="criteriaWeight">-</span>%</div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <small class="text-muted">Type:</small>
-                                            <div>
-                                                <span id="criteriaType" class="badge">-</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <small class="text-muted">Explanation:</small>
-                                            <div><small id="criteriaExplanation">-</small></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="score" class="form-label">
-                                    Evaluation Score <span class="text-danger">*</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="number"
-                                           class="form-control @error('score') is-invalid @enderror"
-                                           id="score"
-                                           name="score"
-                                           value="{{ old('score') }}"
-                                           min="1"
-                                           max="100"
-                                           placeholder="1-100"
-                                           required>
-                                    <span class="input-group-text">/100</span>
-                                </div>
-                                <div class="invalid-feedback" id="score_error">
-                                    @error('score'){{ $message }}@enderror
-                                </div>
-                                <div class="form-text">
-                                    <small>Score range: 1-100 (1 = Very Poor, 100 = Very Good)</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="evaluation_period" class="form-label">
-                                    Evaluation Period <span class="text-danger">*</span>
-                                </label>
-                                <input type="text"
-                                       class="form-control @error('evaluation_period') is-invalid @enderror"
-                                       id="evaluation_period"
-                                       name="evaluation_period"
-                                       value="{{ old('evaluation_period', date('Y-m')) }}"
-                                       placeholder="YYYY-MM (contoh: 2024-01)"
-                                       pattern="[0-9]{4}-[0-9]{2}"
-                                       list="periodList"
-                                       required>
-                                <datalist id="periodList">
-                                    @foreach($existingPeriods as $period)
-                                        <option value="{{ $period }}">
-                                    @endforeach
-                                </datalist>
-                                <div class="invalid-feedback" id="evaluation_period_error">
-                                    @error('evaluation_period'){{ $message }}@enderror
-                                </div>
-                                <div class="form-text">
-                                    <small>Format: YYYY-MM (example: 2024-01 for January 2024)</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Score Visualization -->
-                    <div class="card bg-light mb-4">
-                        <div class="card-body">
-                            <h6 class="card-title">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                Score Visualization
-                            </h6>
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <div class="progress" style="height: 25px;">
-                                        <div class="progress-bar"
-                                             id="scoreBar"
-                                             style="width: 0%"
-                                             role="progressbar">
-                                            <span id="scoreText">0</span>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between mt-1">
-                                        <small>0</small>
-                                        <small>25</small>
-                                        <small>50</small>
-                                        <small>75</small>
-                                        <small>100</small>
-                                    </div>
-                                </div>
-                                                                    <div class="col-md-4 text-center">
-                                        <div class="fs-4 fw-bold" id="scoreCategory">-</div>
-                                        <small class="text-muted">Category</small>
-                                    </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Existing Evaluation Check -->
-                    <div class="alert alert-warning" id="duplicateWarning" style="display: none;">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Warning:</strong> <span id="duplicateMessage"></span>
-                    </div>
-
-                    <div class="flex justify-between items-center">
-                        <x-ui.button 
-                            href="{{ route('evaluations.index') }}" 
-                            variant="secondary" 
-                            icon="fas fa-arrow-left">
-                            Back
-                        </x-ui.button>
-                        <div class="flex gap-2">
-                            <x-ui.button 
-                                variant="outline-secondary" 
-                                type="reset" 
-                                icon="fas fa-undo">
-                                Reset
-                            </x-ui.button>
-                            <x-ui.button 
-                                variant="primary" 
-                                type="submit" 
-                                icon="fas fa-save" 
-                                id="submitBtn">
-                                Save Evaluation
-                            </x-ui.button>
-                        </div>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
-    </div>
+
+        <!-- Criteria Evaluation -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-sliders text-primary-500"></i>{{ __('Criteria Evaluation') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                @if($criterias->count() > 0)
+                    <div class="space-y-6">
+                        @foreach($criterias as $criteria)
+                        <div class="p-4 border border-gray-200 rounded-lg">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h6 class="font-semibold text-gray-900">{{ $criteria->name }}</h6>
+                                    <p class="text-sm text-gray-600">{{ $criteria->description }}</p>
+                                    <div class="flex items-center gap-4 mt-2">
+                                        <span class="badge {{ $criteria->type === 'benefit' ? 'badge-success' : 'badge-warning' }}">
+                                            <i class="fas fa-{{ $criteria->type === 'benefit' ? 'arrow-up' : 'arrow-down' }} mr-1"></i>
+                                            {{ $criteria->type === 'benefit' ? __('Benefit') : __('Cost') }}
+                                        </span>
+                                        <span class="text-sm text-gray-600">{{ __('Weight') }}: <span class="font-semibold">{{ $criteria->weight }}%</span></span>
+                                        @if($criteria->unit)
+                                            <span class="text-sm text-gray-600">{{ __('Unit') }}: {{ $criteria->unit }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="score_{{ $criteria->id }}" class="form-label">
+                                    {{ __('Score') }} <span class="text-danger-500">*</span>
+                                </label>
+                                <input type="number" 
+                                       class="form-control @error('scores.'.$criteria->id) border-danger-500 @enderror" 
+                                       id="score_{{ $criteria->id }}" 
+                                       name="scores[{{ $criteria->id }}]" 
+                                       value="{{ old('scores.'.$criteria->id) }}"
+                                       min="0" 
+                                       step="0.01" 
+                                       required
+                                       placeholder="{{ __('Enter score value') }}">
+                                @error('scores.'.$criteria->id)
+                                    <p class="text-sm text-danger-600 mt-1">{{ $message }}</p>
+                                @enderror
+                                
+                                <div class="form-group mt-3">
+                                    <label for="notes_{{ $criteria->id }}" class="form-label">{{ __('Notes') }}</label>
+                                    <textarea class="form-textarea" 
+                                              id="notes_{{ $criteria->id }}" 
+                                              name="notes[{{ $criteria->id }}]" 
+                                              rows="2" 
+                                              placeholder="{{ __('Optional notes for this criteria...') }}">{{ old('notes.'.$criteria->id) }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-triangle text-4xl text-warning-500 mb-4"></i>
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">{{ __('No Criteria Available') }}</h4>
+                        <p class="text-gray-600 mb-4">{{ __('Please create evaluation criteria first before creating evaluations.') }}</p>
+                        <x-ui.button href="{{ route('criterias.create') }}" variant="primary" icon="fas fa-plus">
+                            {{ __('Create Criteria') }}
+                        </x-ui.button>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-sticky-note text-primary-500"></i>{{ __('Additional Information') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="overall_notes" class="form-label">{{ __('Overall Notes') }}</label>
+                    <textarea class="form-textarea @error('overall_notes') border-danger-500 @enderror" 
+                              id="overall_notes" 
+                              name="overall_notes" 
+                              rows="4" 
+                              placeholder="{{ __('General comments about this evaluation...') }}">{{ old('overall_notes') }}</textarea>
+                    @error('overall_notes')<p class="text-sm text-danger-600 mt-1">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        @if($criterias->count() > 0)
+        <div class="flex flex-col sm:flex-row gap-3 justify-end">
+            <x-ui.button type="button" variant="outline-secondary" onclick="window.history.back()">
+                {{ __('Cancel') }}
+            </x-ui.button>
+            <x-ui.button type="button" variant="outline-primary" onclick="resetForm()">
+                {{ __('Reset Form') }}
+            </x-ui.button>
+            <x-ui.button type="submit" variant="primary" :loading="submitting">
+                <i class="fas fa-save mr-2"></i>{{ __('Save Evaluation') }}
+            </x-ui.button>
+        </div>
+        @endif
+    </form>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-$(document).ready(function() {
-    // Real-time validation
-    $('#evaluationForm input, #evaluationForm select').on('change input', function() {
-        validateField(this);
-        updateScoreVisualization();
-        checkDuplicate();
-    });
-
-    // Form submission with validation
-    $('#evaluationForm').on('submit', function(e) {
-        e.preventDefault();
-
-        if (validateForm()) {
-            submitForm();
+function evaluationForm() {
+    return {
+        submitting: false,
+        
+        handleSubmit(event) {
+            if (this.submitting) {
+                event.preventDefault();
+                return;
+            }
+            
+            if (!this.validateForm()) {
+                event.preventDefault();
+                return;
+            }
+            
+            this.submitting = true;
+        },
+        
+        validateForm() {
+            let isValid = true;
+            
+            // Check if employee is selected
+            const employeeSelect = document.getElementById('employee_id');
+            if (!employeeSelect.value) {
+                this.showError(employeeSelect, '{{ __("Please select an employee") }}');
+                isValid = false;
+            }
+            
+            // Check if period is filled
+            const periodInput = document.getElementById('evaluation_period');
+            if (!periodInput.value.trim()) {
+                this.showError(periodInput, '{{ __("Please enter evaluation period") }}');
+                isValid = false;
+            }
+            
+            // Check all score inputs
+            const scoreInputs = document.querySelectorAll('input[name^="scores["]');
+            scoreInputs.forEach(input => {
+                if (!input.value || parseFloat(input.value) < 0) {
+                    this.showError(input, '{{ __("Please enter a valid score") }}');
+                    isValid = false;
+                }
+            });
+            
+            return isValid;
+        },
+        
+        showError(element, message) {
+            element.classList.add('border-danger-500');
+            
+            // Remove existing error message
+            const existingError = element.parentNode.querySelector('.text-danger-600');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add new error message
+            const errorDiv = document.createElement('p');
+            errorDiv.className = 'text-sm text-danger-600 mt-1';
+            errorDiv.textContent = message;
+            element.parentNode.appendChild(errorDiv);
         }
-    });
-
-    // Employee selection change
-    $('#employee_id').change(function() {
-        updateEmployeeInfo();
-    });
-
-    // Criteria selection change
-    $('#criteria_id').change(function() {
-        updateCriteriaInfo();
-    });
-
-    // Score input change
-    $('#score').on('input', function() {
-        updateScoreVisualization();
-    });
-
-    // Initial setup
-    if ($('#employee_id').val()) {
-        updateEmployeeInfo();
-    }
-    if ($('#criteria_id').val()) {
-        updateCriteriaInfo();
-    }
-    updateScoreVisualization();
-});
-
-function updateEmployeeInfo() {
-    const selectedOption = $('#employee_id option:selected');
-
-    if (selectedOption.val()) {
-        $('#employeeDepartment').text(selectedOption.data('department'));
-        $('#employeePosition').text(selectedOption.data('position'));
-        $('#employeeInfo').show();
-    } else {
-        $('#employeeInfo').hide();
     }
 }
 
-function updateCriteriaInfo() {
-    const selectedOption = $('#criteria_id option:selected');
-
-    if (selectedOption.val()) {
-        const weight = selectedOption.data('weight');
-        const type = selectedOption.data('type');
-
-        $('#criteriaWeight').text(weight);
-        $('#criteriaType').text(type.charAt(0).toUpperCase() + type.slice(1))
-                          .removeClass('bg-success bg-warning')
-                          .addClass(type === 'benefit' ? 'bg-success' : 'bg-warning');
-
-        const explanation = type === 'benefit' ?
-            'Higher value is better' :
-            'Lower value is better';
-        $('#criteriaExplanation').text(explanation);
-
-        $('#criteriaInfo').show();
-    } else {
-        $('#criteriaInfo').hide();
-    }
-}
-
-function updateScoreVisualization() {
-    const score = parseInt($('#score').val()) || 0;
-
-    // Update progress bar
-    $('#scoreBar').css('width', score + '%');
-    $('#scoreText').text(score);
-
-    // Update color and category
-    let category, colorClass;
-
-    if (score >= 90) {
-        category = 'Excellent';
-        colorClass = 'bg-success';
-    } else if (score >= 80) {
-        category = 'Good';
-        colorClass = 'bg-primary';
-    } else if (score >= 70) {
-        category = 'Average';
-        colorClass = 'bg-warning';
-    } else if (score >= 60) {
-        category = 'Poor';
-        colorClass = 'bg-danger';
-    } else {
-        category = 'Very Poor';
-        colorClass = 'bg-dark';
-    }
-
-    $('#scoreBar').removeClass('bg-success bg-primary bg-warning bg-danger bg-dark')
-                  .addClass(colorClass);
-    $('#scoreCategory').text(category);
-}
-
-function checkDuplicate() {
-    const employeeId = $('#employee_id').val();
-    const criteriaId = $('#criteria_id').val();
-    const period = $('#evaluation_period').val();
-
-    if (employeeId && criteriaId && period) {
-        // Check if evaluation already exists
-        $.get("{{ route('evaluations.index') }}", {
-            check_duplicate: true,
-            employee_id: employeeId,
-            criteria_id: criteriaId,
-            evaluation_period: period
-        }, function(response) {
-            if (response.exists) {
-                $('#duplicateMessage').text(`Evaluation for this combination already exists with score ${response.existing_score}. Data will be overwritten if you continue.`);
-                $('#duplicateWarning').show();
-            } else {
-                $('#duplicateWarning').hide();
+function resetForm() {
+    if (confirm('{{ __("Are you sure you want to reset the form?") }}')) {
+        document.querySelector('form').reset();
+        
+        // Clear all error states
+        document.querySelectorAll('.border-danger-500').forEach(el => {
+            el.classList.remove('border-danger-500');
+        });
+        document.querySelectorAll('.text-danger-600').forEach(el => {
+            if (el.textContent.includes('Please')) {
+                el.remove();
             }
         });
-    } else {
-        $('#duplicateWarning').hide();
     }
 }
-
-function validateField(field) {
-    const fieldName = field.name;
-    const fieldValue = field.value.trim();
-    let isValid = true;
-    let errorMessage = '';
-
-    // Remove existing validation classes
-    $(field).removeClass('is-valid is-invalid');
-    $(`#${fieldName}_error`).text('');
-
-    switch(fieldName) {
-        case 'employee_id':
-            if (!fieldValue) {
-                errorMessage = 'Employee is required';
-                isValid = false;
-            }
-            break;
-
-        case 'criteria_id':
-            if (!fieldValue) {
-                errorMessage = 'Criteria is required';
-                isValid = false;
-            }
-            break;
-
-        case 'score':
-            const score = parseInt(fieldValue);
-            if (!fieldValue || isNaN(score)) {
-                errorMessage = 'Score is required';
-                isValid = false;
-            } else if (score < 1 || score > 100) {
-                errorMessage = 'Score must be between 1-100';
-                isValid = false;
-            }
-            break;
-
-        case 'evaluation_period':
-            if (!fieldValue) {
-                errorMessage = 'Evaluation period is required';
-                isValid = false;
-            } else if (!/^\d{4}-\d{2}$/.test(fieldValue)) {
-                errorMessage = 'Invalid period format (YYYY-MM)';
-                isValid = false;
-            }
-            break;
-    }
-
-    if (isValid) {
-        $(field).addClass('is-valid');
-    } else {
-        $(field).addClass('is-invalid');
-        $(`#${fieldName}_error`).text(errorMessage);
-    }
-
-    return isValid;
-}
-
-function validateForm() {
-    let isValid = true;
-
-    $('#evaluationForm input[required], #evaluationForm select[required]').each(function() {
-        if (!validateField(this)) {
-            isValid = false;
-        }
-    });
-
-    return isValid;
-}
-
-function submitForm() {
-    const submitBtn = $('#submitBtn');
-    const originalText = submitBtn.html();
-
-    // Disable button and show loading
-    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Saving...');
-
-    // Submit form
-    $('#evaluationForm')[0].submit();
-}
-
-// Reset form
-$('button[type="reset"]').on('click', function() {
-    $('#evaluationForm input, #evaluationForm select').removeClass('is-valid is-invalid');
-    $('.invalid-feedback').text('');
-    $('#employeeInfo, #criteriaInfo, #duplicateWarning').hide();
-    updateScoreVisualization();
-});
-
-// Auto-format period input
-$('#evaluation_period').on('input', function() {
-    let value = this.value.replace(/[^0-9]/g, '');
-    if (value.length >= 4) {
-        value = value.substring(0, 4) + '-' + value.substring(4, 6);
-    }
-    this.value = value;
-});
-
-// Quick score buttons
-function setScore(score) {
-    $('#score').val(score).trigger('input');
-}
-
-// Add quick score buttons after page load
-$(document).ready(function() {
-    const quickScoreButtons = `
-        <div class="mt-2">
-            <small class="text-muted">Quick Select:</small><br>
-            <div class="flex flex-wrap gap-1 mt-2">
-                <x-ui.button variant="outline-success" size="sm" onclick="setScore(100)">100</x-ui.button>
-                <x-ui.button variant="outline-primary" size="sm" onclick="setScore(90)">90</x-ui.button>
-                <x-ui.button variant="outline-info" size="sm" onclick="setScore(80)">80</x-ui.button>
-                <x-ui.button variant="outline-warning" size="sm" onclick="setScore(70)">70</x-ui.button>
-                <x-ui.button variant="outline-danger" size="sm" onclick="setScore(60)">60</x-ui.button>
-            </div>
-        </div>
-    `;
-    $('#score').parent().parent().append(quickScoreButtons);
-});
 </script>
 @endpush
-
-@push('styles')
-<style>
-.form-control.is-valid {
-    border-color: #198754;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.79-.79.79.79.79-.79L7.62 8.5 8 8.21 4.5 4.71 4.21 5 .5 1.29.21 1.58l-.21.21.79.79z'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right calc(0.375em + 0.1875rem) center;
-    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-}
-
-.form-control.is-invalid, .form-select.is-invalid {
-    border-color: #dc3545;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 4.6 2.4 2.4m0-2.4-2.4 2.4'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right calc(0.375em + 0.1875rem) center;
-    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-}
-
-.progress {
-    border-radius: 0.375rem;
-    background-color: #e9ecef;
-}
-
-.progress-bar {
-    transition: width 0.3s ease, background-color 0.3s ease;
-    border-radius: 0.375rem;
-}
-
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-.bg-light {
-    background-color: #f8f9fa !important;
-}
-
-.badge {
-    font-size: 0.75rem;
-}
-
-datalist {
-    display: none;
-}
-</style>
-@endpush
-

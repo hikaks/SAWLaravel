@@ -1,306 +1,272 @@
 @extends('layouts.main')
 
-@section('title', 'Criteria Details - SAW Employee Evaluation')
-@section('page-title', 'Criteria Details')
+@section('title', __('Criteria Details') . ' - ' . __('SAW Employee Evaluation'))
+@section('page-title', __('Criteria Details'))
 
 @section('content')
-<div class="row">
-    <div class="col-lg-8">
-        <!-- Criteria Information Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-info-circle text-primary me-2"></i>
-                    Criteria Information
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Criteria Name:</label>
-                            <div class="fs-5">{{ $criteria->name }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Weight:</label>
-                            <div class="fs-5">
-                                <x-ui.badge variant="primary" size="lg">{{ $criteria->weight }}%</x-ui.badge>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Type:</label>
-                            <div class="fs-5">
-                                @if($criteria->type === 'benefit')
-                                    <x-ui.badge variant="success" size="lg">Benefit</x-ui.badge>
-                                @else
-                                    <x-ui.badge variant="warning" size="lg">Cost</x-ui.badge>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Created:</label>
-                            <div>{{ $criteria->created_at->format('d M Y, H:i') }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Last Updated:</label>
-                            <div>{{ $criteria->updated_at->format('d M Y, H:i') }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Description:</label>
-                    <div class="text-muted">
-                        @if($criteria->type === 'benefit')
-                            <i class="fas fa-arrow-up text-success me-2"></i>
-                            Higher values are better for this criteria
-                        @else
-                            <i class="fas fa-arrow-down text-warning me-2"></i>
-                            Lower values are better for this criteria
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Evaluation Statistics Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-bar text-primary me-2"></i>
-                    Evaluation Statistics
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-3">
-                        <div class="border rounded p-3">
-                            <h3 class="text-primary mb-1">{{ $evaluationStats['total_evaluations'] }}</h3>
-                            <small class="text-muted">Total Evaluations</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="border rounded p-3">
-                            <h3 class="text-success mb-1">{{ number_format($evaluationStats['avg_score'], 1) }}</h3>
-                            <small class="text-muted">Average Score</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="border rounded p-3">
-                            <h3 class="text-warning mb-1">{{ $evaluationStats['min_score'] ?? 'N/A' }}</h3>
-                            <small class="text-muted">Minimum Score</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="border rounded p-3">
-                            <h3 class="text-info mb-1">{{ $evaluationStats['max_score'] ?? 'N/A' }}</h3>
-                            <small class="text-muted">Maximum Score</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Criteria Details') }}</h1>
+        <p class="text-gray-600">{{ __('Complete information about evaluation criteria') }}</p>
     </div>
-
-    <div class="col-lg-4">
-        <!-- Quick Actions Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-tools text-primary me-2"></i>
-                    Quick Actions
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="grid gap-2">
-                    <x-ui.button 
-                        href="{{ route('criterias.edit', $criteria->id) }}" 
-                        variant="warning" 
-                        icon="fas fa-edit" 
-                        class="w-full">
-                        Edit Criteria
-                    </x-ui.button>
-                    <x-ui.button 
-                        href="{{ route('evaluations.create') }}?criteria_id={{ $criteria->id }}" 
-                        variant="success" 
-                        icon="fas fa-plus" 
-                        class="w-full">
-                        Add Evaluation
-                    </x-ui.button>
-                    <x-ui.button 
-                        href="{{ route('criterias.index') }}" 
-                        variant="secondary" 
-                        icon="fas fa-arrow-left" 
-                        class="w-full">
-                        Back to List
-                    </x-ui.button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Weight Impact Card -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-balance-scale text-primary me-2"></i>
-                    Weight Impact
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <div class="fs-1 fw-bold text-primary">{{ $criteria->weight }}%</div>
-                    <small class="text-muted">of total criteria weight</small>
-                </div>
-
-                <div class="progress mb-3" style="height: 20px;">
-                    <div class="progress-bar bg-primary" style="width: {{ $criteria->weight }}%"></div>
-                </div>
-
-                <div class="small text-muted">
-                    <i class="fas fa-info-circle me-1"></i>
-                    This criteria has a {{ $criteria->weight }}% impact on final SAW calculations.
-                </div>
-            </div>
-        </div>
+    <div class="flex flex-wrap gap-2">
+        <x-ui.button href="{{ route('criterias.edit', $criteria->id) }}" variant="warning" icon="fas fa-edit">{{ __('Edit Criteria') }}</x-ui.button>
+        <x-ui.button href="{{ route('criterias.index') }}" variant="outline-secondary" icon="fas fa-arrow-left">{{ __('Back to List') }}</x-ui.button>
     </div>
 </div>
 
-<!-- Evaluations by Period -->
-@if($evaluationsByPeriod->count() > 0)
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list text-primary me-2"></i>
-                    Evaluations by Period
-                </h5>
+<!-- Criteria Profile Card -->
+<div class="card mb-6 bg-gradient-to-br from-primary-500 to-primary-600 text-white overflow-hidden">
+    <div class="card-body py-8">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+            <div class="w-24 h-24 bg-white/25 rounded-full flex items-center justify-center text-3xl font-bold text-white">
+                {{ strtoupper(substr($criteria->code, 0, 2)) }}
             </div>
-            <div class="card-body">
-                @foreach($evaluationsByPeriod as $period => $evaluations)
-                <div class="mb-4">
-                    <h6 class="text-primary mb-3">
-                        <i class="fas fa-calendar me-2"></i>
-                        Period: {{ $period }}
-                        <span class="badge bg-secondary ms-2">{{ $evaluations->count() }} evaluations</span>
-                    </h6>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Employee</th>
-                                    <th>Score</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($evaluations->take(5) as $evaluation)
-                                <tr>
-                                    <td>
-                                        <strong>{{ $evaluation->employee->name }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ $evaluation->employee->employee_code }}</small>
-                                    </td>
-                                    <td>
-                                        @if($evaluation->score >= 80)
-                                            <span class="badge bg-success">{{ $evaluation->score }}</span>
-                                        @elseif($evaluation->score >= 60)
-                                            <span class="badge bg-warning">{{ $evaluation->score }}</span>
-                                        @else
-                                            <span class="badge bg-danger">{{ $evaluation->score }}</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <small>{{ $evaluation->created_at->format('d M Y') }}</small>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+            <div class="text-center md:text-left flex-1">
+                <h1 class="text-3xl font-bold mb-2">{{ $criteria->name }}</h1>
+                <p class="text-xl mb-2 text-white/75">{{ __('Code') }}: {{ $criteria->code }}</p>
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 text-white/90">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-{{ $criteria->type == 'benefit' ? 'arrow-up' : 'arrow-down' }}"></i>
+                        <span>{{ $criteria->type == 'benefit' ? __('Benefit Type') : __('Cost Type') }}</span>
                     </div>
-
-                    @if($evaluations->count() > 5)
-                    <div class="text-center">
-                        <small class="text-muted">
-                            Showing first 5 of {{ $evaluations->count() }} evaluations
-                        </small>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-weight-hanging"></i>
+                        <span>{{ $criteria->weight }}% {{ __('Weight') }}</span>
+                    </div>
+                    @if($criteria->unit)
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-ruler"></i>
+                        <span>{{ $criteria->unit }}</span>
                     </div>
                     @endif
                 </div>
-                @endforeach
+                <div class="mt-4 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-white/90">{{ __('Weight Contribution') }}</span>
+                        <span class="text-xl font-bold">{{ $criteria->weight }}%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-2 mt-2">
+                        <div class="bg-white h-2 rounded-full transition-all duration-300" style="width: {{ $criteria->weight }}%"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-@endif
 
-<!-- No Evaluations Message -->
-@if($evaluationsByPeriod->count() === 0)
-<div class="row mt-4">
-    <div class="col-12">
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Criteria Information -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Information -->
         <div class="card">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No Evaluations Yet</h5>
-                <p class="text-muted mb-3">
-                    This criteria hasn't been used in any evaluations yet.
-                </p>
-                <x-ui.button 
-                    href="{{ route('evaluations.create') }}?criteria_id={{ $criteria->id }}" 
-                    variant="primary" 
-                    icon="fas fa-plus">
-                    Add First Evaluation
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-info-circle text-primary-500"></i>{{ __('Basic Information') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Criteria Name') }}</label>
+                            <p class="text-gray-900 font-medium">{{ $criteria->name }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Criteria Code') }}</label>
+                            <p class="font-mono bg-gray-100 px-2 py-1 rounded text-gray-900 inline-block">{{ $criteria->code }}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Type') }}</label>
+                            @if($criteria->type == 'benefit')
+                                <span class="badge badge-success"><i class="fas fa-arrow-up mr-1"></i>{{ __('Benefit (Higher is Better)') }}</span>
+                            @else
+                                <span class="badge badge-warning"><i class="fas fa-arrow-down mr-1"></i>{{ __('Cost (Lower is Better)') }}</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Weight') }}</label>
+                            <p class="text-gray-900 font-bold text-lg">{{ $criteria->weight }}%</p>
+                        </div>
+                        @if($criteria->unit)
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Unit') }}</label>
+                            <p class="text-gray-900">{{ $criteria->unit }}</p>
+                        </div>
+                        @endif
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">{{ __('Status') }}</label>
+                            @if($criteria->status === 'active')
+                                <span class="badge badge-success">{{ __('Active') }}</span>
+                            @else
+                                <span class="badge badge-danger">{{ __('Inactive') }}</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        @if($criteria->description)
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-align-left text-primary-500"></i>{{ __('Description') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-gray-700 whitespace-pre-wrap">{{ $criteria->description }}</p>
+            </div>
+        </div>
+        @endif
+
+        <!-- Usage Statistics -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-chart-bar text-primary-500"></i>{{ __('Usage Statistics') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-primary-600">{{ $criteria->evaluations_count ?? 0 }}</div>
+                        <div class="text-sm text-gray-600">{{ __('Total Evaluations') }}</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-success-600">{{ $criteria->active_evaluations_count ?? 0 }}</div>
+                        <div class="text-sm text-gray-600">{{ __('Active Evaluations') }}</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-info-600">{{ round($criteria->average_score ?? 0, 2) }}</div>
+                        <div class="text-sm text-gray-600">{{ __('Average Score') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-bolt text-warning-500"></i>{{ __('Quick Actions') }}
+                </h6>
+            </div>
+            <div class="card-body space-y-3">
+                <x-ui.button href="{{ route('criterias.edit', $criteria->id) }}" variant="outline-warning" size="sm" icon="fas fa-edit" class="w-full justify-start">
+                    {{ __('Edit Information') }}
                 </x-ui.button>
+                <x-ui.button href="{{ route('evaluations.create', ['criteria' => $criteria->id]) }}" variant="outline-primary" size="sm" icon="fas fa-plus" class="w-full justify-start">
+                    {{ __('Create Evaluation') }}
+                </x-ui.button>
+                <div class="pt-2 border-t border-gray-200">
+                    <x-ui.button onclick="confirmDelete()" variant="outline-danger" size="sm" icon="fas fa-trash" class="w-full justify-start">
+                        {{ __('Delete Criteria') }}
+                    </x-ui.button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weight Information -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-balance-scale text-info-500"></i>{{ __('Weight Information') }}
+                </h6>
+            </div>
+            <div class="card-body space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Current Weight') }}</span>
+                    <span class="font-semibold text-gray-900">{{ $criteria->weight }}%</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Total System Weight') }}</span>
+                    <span class="font-semibold text-gray-900">{{ $totalWeight ?? 0 }}%</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">{{ __('Remaining Weight') }}</span>
+                    <span class="font-semibold {{ (100 - ($totalWeight ?? 0)) >= 0 ? 'text-success-600' : 'text-danger-600' }}">
+                        {{ 100 - ($totalWeight ?? 0) }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-info text-gray-500"></i>{{ __('System Information') }}
+                </h6>
+            </div>
+            <div class="card-body space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('Created') }}</span>
+                    <span class="text-gray-900">{{ $criteria->created_at->format('M d, Y') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('Last Updated') }}</span>
+                    <span class="text-gray-900">{{ $criteria->updated_at->diffForHumans() }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('ID') }}</span>
+                    <span class="text-gray-900 font-mono">#{{ $criteria->id }}</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
-@endif
+
+<!-- Delete Confirmation Modal -->
+<div x-data="{ showDeleteModal: false }" x-show="showDeleteModal" class="modal" x-transition>
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+        <div class="modal-content modal-confirm modal-danger">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ __('Delete Criteria') }}</h5>
+                <button @click="showDeleteModal = false" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Are you sure?') }}</h4>
+                <p class="text-gray-600 mb-4">
+                    {{ __('This will permanently delete') }} <strong>{{ $criteria->name }}</strong> {{ __('and all associated evaluation data. This action cannot be undone.') }}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button @click="showDeleteModal = false" class="btn btn-secondary">{{ __('Cancel') }}</button>
+                <form action="{{ route('criterias.destroy', $criteria->id) }}" method="POST" class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash mr-2"></i>{{ __('Delete Criteria') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
-@push('styles')
-<style>
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    border: none;
+@push('scripts')
+<script>
+function confirmDelete() {
+    Alpine.store('modals', { showDeleteModal: true });
 }
 
-.card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.border.rounded {
-    border-color: #dee2e6 !important;
-}
-
-.progress {
-    background-color: #e9ecef;
-    border-radius: 0.375rem;
-}
-
-.progress-bar {
-    border-radius: 0.375rem;
-}
-
-.table-sm td, .table-sm th {
-    padding: 0.5rem;
-}
-
-.badge {
-    font-size: 0.875rem;
-}
-</style>
+document.addEventListener('alpine:init', () => {
+    Alpine.store('modals', { showDeleteModal: false });
+});
+</script>
 @endpush
