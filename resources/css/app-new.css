@@ -1,0 +1,9 @@
+/* Import base styles with Tailwind CSS */
+@import './base.css';
+
+/* Import existing component styles (will be migrated) */
+@import './employees.css';
+@import './criterias.css';
+@import './evaluations.css';
+@import './results.css';
+@import './custom-styles.css';
