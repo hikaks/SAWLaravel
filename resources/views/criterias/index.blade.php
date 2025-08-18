@@ -63,15 +63,23 @@
                     @if($totalWeight != 100)
                     <div class="col-auto">
                         @if($totalWeight < 100)
-                        <a href="{{ route('criterias.create') }}" class="btn btn-light btn-lg">
-                            <i class="fas fa-plus me-2"></i>
+                        <x-ui.button 
+                            href="{{ route('criterias.create') }}" 
+                            variant="secondary" 
+                            size="lg" 
+                            icon="fas fa-plus"
+                            class="bg-white text-gray-800 hover:bg-gray-100 border-white">
                             Add Criteria
-                        </a>
+                        </x-ui.button>
                         @else
-                        <button class="btn btn-outline-light btn-lg" onclick="showWeightAdjustmentTips()">
-                            <i class="fas fa-balance-scale me-2"></i>
+                        <x-ui.button 
+                            variant="ghost" 
+                            size="lg" 
+                            icon="fas fa-balance-scale"
+                            onclick="showWeightAdjustmentTips()"
+                            class="text-white border-white hover:bg-white hover:bg-opacity-20">
                             Adjust Weight
-                        </button>
+                        </x-ui.button>
                         @endif
                     </div>
                     @endif
@@ -96,27 +104,45 @@
                     <i class="fas fa-list-check text-primary me-2"></i>
                     Evaluation Criteria List
                 </h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-warning btn-sm" onclick="showRestoreModal()" data-bs-toggle="tooltip" title="{{ __('Restore Deleted Criteria') }}">
-                        <i class="fas fa-undo"></i>
-                    </button>
-                    <a href="{{ route('criterias.create') }}" class="btn btn-success">
-                        <i class="fas fa-plus me-1"></i>
+                <div class="flex flex-wrap gap-2">
+                    <x-ui.button 
+                        variant="outline-warning" 
+                        size="sm" 
+                        icon="fas fa-undo"
+                        onclick="showRestoreModal()" 
+                        data-bs-toggle="tooltip" 
+                        title="{{ __('Restore Deleted Criteria') }}">
+                    </x-ui.button>
+                    <x-ui.button 
+                        href="{{ route('criterias.create') }}" 
+                        variant="success" 
+                        icon="fas fa-plus">
                         Add New Criteria
-                    </a>
-                    <button class="btn btn-outline-info" onclick="checkWeightStatus()">
-                        <i class="fas fa-balance-scale me-1"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        variant="outline-info" 
+                        icon="fas fa-balance-scale"
+                        onclick="checkWeightStatus()"
+                        id="checkWeightBtn">
                         Check Weight
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="refreshTable()">
-                        <i class="fas fa-sync-alt me-1"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        variant="outline-secondary" 
+                        icon="fas fa-sync-alt"
+                        onclick="refreshTable()"
+                        id="refreshBtn">
                         Refresh
-                    </button>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-import me-1"></i>
+                    </x-ui.button>
+                    <div class="relative inline-block">
+                        <x-ui.button 
+                            variant="success" 
+                            size="sm" 
+                            icon="fas fa-file-import"
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                            class="dropdown-toggle">
                             Import
-                        </button>
+                        </x-ui.button>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('criterias.import-template') }}">
                                 <i class="fas fa-download me-2"></i>Download Template
@@ -128,10 +154,12 @@
                         </ul>
                     </div>
                     @if($totalWeight < 100)
-                    <a href="{{ route('criterias.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>
+                    <x-ui.button 
+                        href="{{ route('criterias.create') }}" 
+                        variant="primary" 
+                        icon="fas fa-plus">
                         Add Criteria
-                    </a>
+                    </x-ui.button>
                     @endif
                 </div>
             </div>
@@ -327,14 +355,22 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0">{{ __('Deleted Criteria') }}</h6>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-outline-warning btn-sm" onclick="restoreAllCriteria()" id="restoreAllBtn" disabled>
-                            <i class="fas fa-undo me-1"></i>
+                        <x-ui.button 
+                            variant="outline-warning" 
+                            size="sm" 
+                            icon="fas fa-undo"
+                            onclick="restoreAllCriteria()" 
+                            id="restoreAllBtn" 
+                            :disabled="true">
                             {{ __('Restore All') }}
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshRestoreList()">
-                            <i class="fas fa-sync-alt me-1"></i>
+                        </x-ui.button>
+                        <x-ui.button 
+                            variant="outline-secondary" 
+                            size="sm" 
+                            icon="fas fa-sync-alt"
+                            onclick="refreshRestoreList()">
                             {{ __('Refresh') }}
-                        </button>
+                        </x-ui.button>
                     </div>
                 </div>
 
@@ -349,9 +385,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <x-ui.button 
+                    variant="secondary" 
+                    type="button" 
+                    data-bs-dismiss="modal">
                     {{ __('Close') }}
-                </button>
+                </x-ui.button>
             </div>
         </div>
     </div>
@@ -369,7 +408,7 @@
                 <!-- Content will be loaded here -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <x-ui.button variant="secondary" type="button" data-bs-dismiss="modal">Close</x-ui.button>
             </div>
         </div>
     </div>
@@ -409,10 +448,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-upload me-2"></i>Import Data
-                    </button>
+                    <x-ui.button variant="secondary" type="button" data-bs-dismiss="modal">Cancel</x-ui.button>
+                    <x-ui.button variant="success" type="submit" icon="fas fa-upload">Import Data</x-ui.button>
                 </div>
             </form>
         </div>

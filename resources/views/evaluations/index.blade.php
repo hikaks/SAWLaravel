@@ -16,34 +16,46 @@
                     </h1>
                     <p class="text-muted mb-0">Manage and monitor employee performance evaluations</p>
                 </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-warning" onclick="showRestoreModal()">
-                        <i class="fas fa-undo me-2"></i>
+                <div class="flex flex-wrap gap-2">
+                    <x-ui.button 
+                        variant="outline-warning" 
+                        icon="fas fa-undo"
+                        onclick="showRestoreModal()">
                         Restore Deleted
-                    </button>
-                    <button class="btn btn-outline-secondary" onclick="refreshTable()">
-                        <i class="fas fa-sync-alt me-2"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        variant="outline-secondary" 
+                        icon="fas fa-sync-alt"
+                        onclick="refreshTable()"
+                        id="refreshBtn">
                         Refresh
-                    </button>
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-info btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-import me-1"></i>
+                    </x-ui.button>
+                    <div class="relative inline-block">
+                        <x-ui.button 
+                            variant="info" 
+                            size="sm" 
+                            icon="fas fa-file-import"
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                            class="dropdown-toggle">
                             Import
-                        </button>
+                        </x-ui.button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('evaluations.import-template') }}">
-                                <i class="fas fa-download me-2"></i>Download Template
+                            <li><a class="dropdown-item flex items-center" href="{{ route('evaluations.import-template') }}">
+                                <i class="fas fa-download mr-2 text-info-600"></i>Download Template
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="showImportModal()">
-                                <i class="fas fa-upload me-2"></i>Upload Data
+                            <li><a class="dropdown-item flex items-center" href="#" onclick="showImportModal()">
+                                <i class="fas fa-upload mr-2 text-primary-600"></i>Upload Data
                             </a></li>
                         </ul>
                     </div>
-                    <a href="{{ route('evaluations.create') }}" class="btn btn-success">
-                        <i class="fas fa-plus me-2"></i>
+                    <x-ui.button 
+                        href="{{ route('evaluations.create') }}" 
+                        variant="success" 
+                        icon="fas fa-plus">
                         Add Evaluation
-                    </a>
+                    </x-ui.button>
                 </div>
             </div>
         </div>
@@ -213,15 +225,23 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0 fw-bold">Deleted Evaluations</h6>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleSelectAllDeleted()">
-                            <i class="fas fa-check-square me-1"></i>
+                    <div class="flex gap-2">
+                        <x-ui.button 
+                            variant="outline-secondary" 
+                            size="sm" 
+                            icon="fas fa-check-square"
+                            onclick="toggleSelectAllDeleted()">
                             Select All
-                        </button>
-                        <button type="button" class="btn btn-warning btn-sm" id="restoreAllBtn" onclick="restoreAllEvaluations()" disabled>
-                            <i class="fas fa-undo me-1"></i>
+                        </x-ui.button>
+                        <x-ui.button 
+                            variant="warning" 
+                            size="sm" 
+                            icon="fas fa-undo"
+                            id="restoreAllBtn" 
+                            onclick="restoreAllEvaluations()" 
+                            :disabled="true">
                             Restore All
-                        </button>
+                        </x-ui.button>
                     </div>
                 </div>
 
