@@ -15,9 +15,12 @@
                     <p class="text-muted mt-1">Manage system users, roles, and permissions</p>
                 </div>
                 <div>
-                    <a href="{{ route('users.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>Add New User
-                    </a>
+                    <x-ui.button 
+                        href="{{ route('users.create') }}" 
+                        variant="primary" 
+                        icon="fas fa-plus">
+                        Add New User
+                    </x-ui.button>
                 </div>
             </div>
         </div>

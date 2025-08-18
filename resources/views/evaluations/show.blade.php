@@ -37,9 +37,9 @@
                                 Weight: {{ $evaluation->criteria->weight }}% |
                                 Type:
                                 @if($evaluation->criteria->type === 'benefit')
-                                    <span class="badge bg-success">Benefit</span>
+                                    <x-ui.badge variant="success">Benefit</x-ui.badge>
                                 @else
-                                    <span class="badge bg-warning">Cost</span>
+                                    <x-ui.badge variant="warning">Cost</x-ui.badge>
                                 @endif
                             </small>
                         </div>
@@ -148,19 +148,28 @@
                 </h6>
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('evaluations.edit', $evaluation->id) }}" class="btn btn-warning">
-                        <i class="fas fa-edit me-2"></i>
+                <div class="grid gap-2">
+                    <x-ui.button 
+                        href="{{ route('evaluations.edit', $evaluation->id) }}" 
+                        variant="warning" 
+                        icon="fas fa-edit" 
+                        class="w-full">
                         Edit Evaluation
-                    </a>
-                    <a href="{{ route('evaluations.create') }}?employee_id={{ $evaluation->employee_id }}&criteria_id={{ $evaluation->criteria_id }}" class="btn btn-success">
-                        <i class="fas fa-plus me-2"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        href="{{ route('evaluations.create') }}?employee_id={{ $evaluation->employee_id }}&criteria_id={{ $evaluation->criteria_id }}" 
+                        variant="success" 
+                        icon="fas fa-plus" 
+                        class="w-full">
                         Add Similar Evaluation
-                    </a>
-                    <a href="{{ route('evaluations.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>
+                    </x-ui.button>
+                    <x-ui.button 
+                        href="{{ route('evaluations.index') }}" 
+                        variant="secondary" 
+                        icon="fas fa-arrow-left" 
+                        class="w-full">
                         Back to List
-                    </a>
+                    </x-ui.button>
                 </div>
             </div>
         </div>

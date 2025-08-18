@@ -14,13 +14,19 @@
                     </h1>
                     <p class="text-muted mt-1">Update user information, role and permissions</p>
                 </div>
-                <div class="btn-group">
-                    <a href="{{ route('users.show', $user->id) }}" class="btn btn-info">
-                        <i class="fas fa-eye me-1"></i>View Profile
-                    </a>
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Users
-                    </a>
+                <div class="flex gap-2">
+                    <x-ui.button 
+                        href="{{ route('users.show', $user->id) }}" 
+                        variant="info" 
+                        icon="fas fa-eye">
+                        View Profile
+                    </x-ui.button>
+                    <x-ui.button 
+                        href="{{ route('users.index') }}" 
+                        variant="secondary" 
+                        icon="fas fa-arrow-left">
+                        Back to Users
+                    </x-ui.button>
                 </div>
             </div>
         </div>
@@ -267,16 +273,27 @@
                         <!-- Form Actions -->
                         <div class="row mt-4">
                             <div class="col-12">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('users.index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times me-1"></i>Cancel
-                                    </a>
-                                    <button type="button" class="btn btn-outline-warning" onclick="resetForm()">
-                                        <i class="fas fa-undo me-1"></i>Reset Changes
-                                    </button>
-                                    <button type="submit" class="btn btn-primary" id="submitBtn">
-                                        <i class="fas fa-save me-1"></i>Update User
-                                    </button>
+                                <div class="flex justify-end gap-2">
+                                    <x-ui.button 
+                                        href="{{ route('users.index') }}" 
+                                        variant="secondary" 
+                                        icon="fas fa-times">
+                                        Cancel
+                                    </x-ui.button>
+                                    <x-ui.button 
+                                        variant="outline-warning" 
+                                        type="button" 
+                                        icon="fas fa-undo"
+                                        onclick="resetForm()">
+                                        Reset Changes
+                                    </x-ui.button>
+                                    <x-ui.button 
+                                        variant="primary" 
+                                        type="submit" 
+                                        icon="fas fa-save" 
+                                        id="submitBtn">
+                                        Update User
+                                    </x-ui.button>
                                 </div>
                             </div>
                         </div>

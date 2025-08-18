@@ -15,9 +15,12 @@
                     <p class="text-muted mt-1">Create a new user account with appropriate role and permissions</p>
                 </div>
                 <div>
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Users
-                    </a>
+                    <x-ui.button 
+                        href="{{ route('users.index') }}" 
+                        variant="secondary" 
+                        icon="fas fa-arrow-left">
+                        Back to Users
+                    </x-ui.button>
                 </div>
             </div>
         </div>
@@ -213,13 +216,20 @@
                         <!-- Form Actions -->
                         <div class="row mt-4">
                             <div class="col-12">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('users.index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times me-1"></i>Cancel
-                                    </a>
-                                    <button type="submit" class="btn btn-primary" id="submitBtn">
-                                        <i class="fas fa-save me-1"></i>Create User
-                                    </button>
+                                <div class="flex justify-end gap-2">
+                                    <x-ui.button 
+                                        href="{{ route('users.index') }}" 
+                                        variant="secondary" 
+                                        icon="fas fa-times">
+                                        Cancel
+                                    </x-ui.button>
+                                    <x-ui.button 
+                                        variant="primary" 
+                                        type="submit" 
+                                        icon="fas fa-save" 
+                                        id="submitBtn">
+                                        Create User
+                                    </x-ui.button>
                                 </div>
                             </div>
                         </div>

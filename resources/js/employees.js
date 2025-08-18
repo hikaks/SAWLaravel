@@ -257,21 +257,39 @@ function applyFilters() {
 }
 
 function refreshTable() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    
+    // Set loading state
+    if (window.uiHelpers && refreshBtn) {
+        window.uiHelpers.setButtonLoading(refreshBtn, true, 'Refreshing...');
+    }
+    
+    // Reload table and statistics
     employeesTable.ajax.reload(null, false);
     loadStatistics();
-
-    if (window.utils?.showSuccessToast) {
-        window.utils.showSuccessToast('Data refreshed successfully');
-    } else {
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000,
-            icon: 'success',
-            title: 'Data refreshed successfully'
-        });
-    }
+    
+    // Reset loading state after a short delay
+    setTimeout(() => {
+        if (window.uiHelpers && refreshBtn) {
+            window.uiHelpers.setButtonLoading(refreshBtn, false);
+        }
+        
+        // Show success notification
+        if (window.uiHelpers) {
+            window.uiHelpers.showNotification('Data refreshed successfully', 'success');
+        } else if (window.utils?.showSuccessToast) {
+            window.utils.showSuccessToast('Data refreshed successfully');
+        } else {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                icon: 'success',
+                title: 'Data refreshed successfully'
+            });
+        }
+    }, 1000);
 }
 
 function showImportModal() {
@@ -386,6 +404,8 @@ function viewPerformance(employeeId) {
 }
 
 function exportData() {
+    const exportBtn = document.getElementById('exportBtn');
+    
     Swal.fire({
         title: 'Export Data',
         text: 'Choose export format',
@@ -395,15 +415,39 @@ function exportData() {
         confirmButtonText: '<i class="fas fa-file-pdf me-1"></i>PDF',
         denyButtonText: '<i class="fas fa-file-excel me-1"></i>Excel',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#dc3545',
-        denyButtonColor: '#198754',
-        cancelButtonColor: '#6c757d'
+        confirmButtonColor: '#dc2626',
+        denyButtonColor: '#16a34a',
+        cancelButtonColor: '#6b7280',
+        customClass: {
+            popup: 'rounded-lg',
+            confirmButton: 'rounded-lg',
+            denyButton: 'rounded-lg',
+            cancelButton: 'rounded-lg'
+        }
     }).then((result) => {
-        const exportUrl = window.appRoutes?.employees?.export || '/employees/export';
-        if (result.isConfirmed) {
-            window.location.href = `${exportUrl}?format=pdf`;
-        } else if (result.isDenied) {
-            window.location.href = `${exportUrl}?format=excel`;
+        if (result.isConfirmed || result.isDenied) {
+            // Set loading state
+            if (window.uiHelpers && exportBtn) {
+                window.uiHelpers.setButtonLoading(exportBtn, true, 'Exporting...');
+            }
+            
+            const exportUrl = window.appRoutes?.employees?.export || '/employees/export';
+            const format = result.isConfirmed ? 'pdf' : 'excel';
+            
+            // Show notification
+            if (window.uiHelpers) {
+                window.uiHelpers.showNotification(`Preparing ${format.toUpperCase()} export...`, 'info');
+            }
+            
+            // Trigger download
+            window.location.href = `${exportUrl}?format=${format}`;
+            
+            // Reset loading state after delay
+            setTimeout(() => {
+                if (window.uiHelpers && exportBtn) {
+                    window.uiHelpers.setButtonLoading(exportBtn, false);
+                }
+            }, 3000);
         }
     });
 }

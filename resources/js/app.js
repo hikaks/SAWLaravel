@@ -1,6 +1,7 @@
 import './bootstrap';
 import './dashboard';
 import './charts';
+import './ui-helpers';
 
 import Alpine from 'alpinejs';
 

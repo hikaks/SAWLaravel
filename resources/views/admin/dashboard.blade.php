@@ -14,10 +14,14 @@
                     </h1>
                     <p class="text-muted mt-1">System overview and administrative controls</p>
                 </div>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="fas fa-cogs me-1"></i>Admin Tools
-                    </button>
+                <div class="relative inline-block">
+                    <x-ui.button 
+                        variant="outline-primary" 
+                        icon="fas fa-cogs"
+                        data-bs-toggle="dropdown"
+                        class="dropdown-toggle">
+                        Admin Tools
+                    </x-ui.button>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{{ route('users.index') }}">
                             <i class="fas fa-users me-2"></i>Manage Users

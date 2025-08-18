@@ -10,19 +10,28 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Evaluation Results') }}</h1>
         <p class="text-muted mb-0">{{ __('Employee ranking results based on SAW calculation') }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#calculationModal">
-            <i class="fas fa-info-circle me-1"></i>
+    <div class="flex flex-wrap gap-2">
+        <x-ui.button 
+            variant="outline-info" 
+            icon="fas fa-info-circle"
+            data-bs-toggle="modal" 
+            data-bs-target="#calculationModal">
             {{ __('How SAW Works') }}
-        </button>
-        <button class="btn btn-success" onclick="generateResults()">
-            <i class="fas fa-calculator me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            variant="success" 
+            icon="fas fa-calculator"
+            onclick="generateResults()"
+            id="generateBtn">
             {{ __('Generate Results') }}
-        </button>
-        <button class="btn btn-outline-secondary" onclick="refreshResults()">
-            <i class="fas fa-sync-alt me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            variant="outline-secondary" 
+            icon="fas fa-sync-alt"
+            onclick="refreshResults()"
+            id="refreshResultsBtn">
             {{ __('Refresh') }}
-        </button>
+        </x-ui.button>
     </div>
 </div>
 
@@ -89,37 +98,39 @@
                         <option value="{{ $period }}">{{ $period }}</option>
                     @endforeach
                 </select>
-                                <div class="btn-group export-buttons">
-                    <button type="button"
-                            class="btn btn-danger export-btn"
-                            onclick="exportResults('pdf')"
-                            data-format="pdf"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="{{ __('Export comprehensive SAW results as PDF report with rankings, statistics, and criteria information') }}">
-                        <i class="fas fa-file-pdf me-1"></i>
-                        <span class="btn-text">Export PDF</span>
-                    </button>
-                    <button type="button"
-                            class="btn btn-success export-btn"
-                            onclick="exportResults('excel')"
-                            data-format="excel"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="{{ __('Export detailed SAW results as Excel spreadsheet with performance analysis and statistics') }}">
-                        <i class="fas fa-file-excel me-1"></i>
-                        <span class="btn-text">Export Excel</span>
-                    </button>
+                <div class="flex flex-wrap gap-2">
+                    <x-ui.button 
+                        variant="danger" 
+                        icon="fas fa-file-pdf"
+                        onclick="exportResults('pdf')"
+                        data-format="pdf"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="{{ __('Export comprehensive SAW results as PDF report with rankings, statistics, and criteria information') }}"
+                        id="exportPdfBtn">
+                        Export PDF
+                    </x-ui.button>
+                    <x-ui.button 
+                        variant="success" 
+                        icon="fas fa-file-excel"
+                        onclick="exportResults('excel')"
+                        data-format="excel"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="{{ __('Export detailed SAW results as Excel spreadsheet with performance analysis and statistics') }}"
+                        id="exportExcelBtn">
+                        Export Excel
+                    </x-ui.button>
                     @if(app()->environment('local') || auth()->user()->isAdmin())
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            onclick="debugPdfTemplate()"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="{{ __('Debug PDF template - view HTML before PDF conversion') }}">
-                        <i class="fas fa-bug me-1"></i>
-                        <span class="btn-text">Debug</span>
-                    </button>
+                    <x-ui.button 
+                        variant="outline-secondary" 
+                        icon="fas fa-bug"
+                        onclick="debugPdfTemplate()"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        title="{{ __('Debug PDF template - view HTML before PDF conversion') }}">
+                        Debug
+                    </x-ui.button>
                     @endif
                 </div>
             </div>
@@ -147,10 +158,12 @@
                 <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted mb-3">{{ __('No Results Available') }}</h5>
                 <p class="text-muted mb-4">{{ __('No evaluation results found. Please complete evaluations first.') }}</p>
-                <a href="{{ route('evaluations.index') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>
+                <x-ui.button 
+                    href="{{ route('evaluations.index') }}" 
+                    variant="primary" 
+                    icon="fas fa-plus">
                     {{ __('Start Evaluations') }}
-                </a>
+                </x-ui.button>
             </div>
         @endif
     </div>

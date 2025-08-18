@@ -14,15 +14,19 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Employee Profile') }}</h1>
         <p class="text-muted mb-0">{{ __('Complete information and performance overview') }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('employees.edit', $employee->id) }}" class="btn btn-warning">
-            <i class="fas fa-edit me-1"></i>
+    <div class="flex gap-2">
+        <x-ui.button 
+            href="{{ route('employees.edit', $employee->id) }}" 
+            variant="warning" 
+            icon="fas fa-edit">
             {{ __('Edit Employee') }}
-        </a>
-        <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('employees.index') }}" 
+            variant="outline-secondary" 
+            icon="fas fa-arrow-left">
             {{ __('Back to List') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 

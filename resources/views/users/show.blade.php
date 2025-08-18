@@ -14,15 +14,21 @@
                     </h1>
                     <p class="text-muted mt-1">View detailed user information and activity</p>
                 </div>
-                <div class="btn-group">
+                <div class="flex gap-2">
                     @if(auth()->user()->isAdmin() || auth()->user()->id === $user->id)
-                        <a href="{{ route('users.edit', $user->id) }}" class="btn btn-warning">
-                            <i class="fas fa-edit me-1"></i>Edit Profile
-                        </a>
+                        <x-ui.button 
+                            href="{{ route('users.edit', $user->id) }}" 
+                            variant="warning" 
+                            icon="fas fa-edit">
+                            Edit Profile
+                        </x-ui.button>
                     @endif
-                    <a href="{{ route('users.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Users
-                    </a>
+                    <x-ui.button 
+                        href="{{ route('users.index') }}" 
+                        variant="secondary" 
+                        icon="fas fa-arrow-left">
+                        Back to Users
+                    </x-ui.button>
                 </div>
             </div>
         </div>
@@ -44,10 +50,14 @@
 
                     <!-- Status Badges -->
                     <div class="d-flex justify-content-center gap-2 mb-3">
-                        <span class="badge bg-{{ $user->role === 'admin' ? 'danger' : ($user->role === 'manager' ? 'warning' : 'info') }} px-3 py-2">
-                            <i class="fas fa-user-tag me-1"></i>{{ ucfirst($user->role) }}
-                        </span>
-                        <span class="badge bg-{{ $user->is_active ? 'success' : 'secondary' }} px-3 py-2">
+                        <x-ui.badge 
+                            variant="{{ $user->role === 'admin' ? 'danger' : ($user->role === 'manager' ? 'warning' : 'info') }}" 
+                            size="lg">
+                            <i class="fas fa-user-tag mr-1"></i>{{ ucfirst($user->role) }}
+                        </x-ui.badge>
+                        <x-ui.status-badge 
+                            status="{{ $user->is_active ? 'active' : 'inactive' }}" 
+                            size="lg">
                             <i class="fas fa-{{ $user->is_active ? 'check-circle' : 'times-circle' }} me-1"></i>
                             {{ $user->is_active ? 'Active' : 'Inactive' }}
                         </span>

@@ -10,15 +10,19 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Edit Employee') }}</h1>
         <p class="text-muted mb-0">{{ __('Update employee information') }}: <span class="fw-semibold">{{ $employee->name }}</span></p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('employees.show', $employee->id) }}" class="btn btn-outline-info">
-            <i class="fas fa-eye me-1"></i>
+    <div class="flex gap-2">
+        <x-ui.button 
+            href="{{ route('employees.show', $employee->id) }}" 
+            variant="outline-info" 
+            icon="fas fa-eye">
             {{ __('View Details') }}
-        </a>
-        <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('employees.index') }}" 
+            variant="outline-secondary" 
+            icon="fas fa-arrow-left">
             {{ __('Back to List') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 
@@ -253,20 +257,28 @@
 
                     <!-- Form Actions -->
                     <div class="border-top pt-4 mt-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>
+                        <div class="flex justify-between items-center">
+                            <x-ui.button 
+                                href="{{ route('employees.index') }}" 
+                                variant="outline-secondary" 
+                                icon="fas fa-arrow-left">
                                 {{ __('Back to List') }}
-                            </a>
-                            <div class="d-flex gap-2">
-                                <a href="{{ route('employees.show', $employee->id) }}" class="btn btn-outline-info">
-                                    <i class="fas fa-eye me-2"></i>
+                            </x-ui.button>
+                            <div class="flex gap-2">
+                                <x-ui.button 
+                                    href="{{ route('employees.show', $employee->id) }}" 
+                                    variant="outline-info" 
+                                    icon="fas fa-eye">
                                     {{ __('View Details') }}
-                                </a>
-                                <button type="submit" class="btn btn-warning px-4" id="submitBtn">
-                                    <i class="fas fa-save me-2"></i>
+                                </x-ui.button>
+                                <x-ui.button 
+                                    variant="warning" 
+                                    type="submit" 
+                                    icon="fas fa-save" 
+                                    id="submitBtn" 
+                                    class="px-4">
                                     {{ __('Update Employee') }}
-                                </button>
+                                </x-ui.button>
                             </div>
                         </div>
                     </div>

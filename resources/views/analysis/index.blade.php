@@ -10,19 +10,27 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Advanced Analytics') }}</h1>
         <p class="text-muted mb-0">{{ __('Comprehensive analysis tools for decision support system') }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-info" onclick="showAnalysisHistory()">
-            <i class="fas fa-history me-1"></i>
+    <div class="flex flex-wrap gap-2">
+        <x-ui.button 
+            variant="outline-info" 
+            icon="fas fa-history"
+            onclick="showAnalysisHistory()"
+            id="historyBtn">
             {{ __('Analysis History') }}
-        </button>
-        <button class="btn btn-outline-primary" onclick="exportDashboard()">
-            <i class="fas fa-download me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            variant="outline-primary" 
+            icon="fas fa-download"
+            onclick="exportDashboard()"
+            id="exportDashboardBtn">
             {{ __('Export Dashboard') }}
-        </button>
-        <a href="{{ route('analysis.debug') }}" class="btn btn-outline-danger">
-            <i class="fas fa-bug me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('analysis.debug') }}" 
+            variant="outline-danger" 
+            icon="fas fa-bug">
             {{ __('Debug') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 

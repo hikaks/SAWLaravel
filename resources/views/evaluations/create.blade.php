@@ -212,20 +212,27 @@
                         <strong>Warning:</strong> <span id="duplicateMessage"></span>
                     </div>
 
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ route('evaluations.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>
+                    <div class="flex justify-between items-center">
+                        <x-ui.button 
+                            href="{{ route('evaluations.index') }}" 
+                            variant="secondary" 
+                            icon="fas fa-arrow-left">
                             Back
-                        </a>
-                        <div>
-                            <button type="reset" class="btn btn-outline-secondary me-2">
-                                <i class="fas fa-undo me-1"></i>
+                        </x-ui.button>
+                        <div class="flex gap-2">
+                            <x-ui.button 
+                                variant="outline-secondary" 
+                                type="reset" 
+                                icon="fas fa-undo">
                                 Reset
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
-                                <i class="fas fa-save me-1"></i>
+                            </x-ui.button>
+                            <x-ui.button 
+                                variant="primary" 
+                                type="submit" 
+                                icon="fas fa-save" 
+                                id="submitBtn">
                                 Save Evaluation
-                            </button>
+                            </x-ui.button>
                         </div>
                     </div>
                 </form>
@@ -478,11 +485,13 @@ $(document).ready(function() {
     const quickScoreButtons = `
         <div class="mt-2">
             <small class="text-muted">Quick Select:</small><br>
-            <button type="button" class="btn btn-outline-success btn-sm me-1" onclick="setScore(100)">100</button>
-            <button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="setScore(90)">90</button>
-            <button type="button" class="btn btn-outline-info btn-sm me-1" onclick="setScore(80)">80</button>
-            <button type="button" class="btn btn-outline-warning btn-sm me-1" onclick="setScore(70)">70</button>
-            <button type="button" class="btn btn-outline-danger btn-sm" onclick="setScore(60)">60</button>
+            <div class="flex flex-wrap gap-1 mt-2">
+                <x-ui.button variant="outline-success" size="sm" onclick="setScore(100)">100</x-ui.button>
+                <x-ui.button variant="outline-primary" size="sm" onclick="setScore(90)">90</x-ui.button>
+                <x-ui.button variant="outline-info" size="sm" onclick="setScore(80)">80</x-ui.button>
+                <x-ui.button variant="outline-warning" size="sm" onclick="setScore(70)">70</x-ui.button>
+                <x-ui.button variant="outline-danger" size="sm" onclick="setScore(60)">60</x-ui.button>
+            </div>
         </div>
     `;
     $('#score').parent().parent().append(quickScoreButtons);

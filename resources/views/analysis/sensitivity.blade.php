@@ -10,19 +10,27 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Sensitivity Analysis') }}</h1>
         <p class="text-muted mb-0">{{ __('Analyze how changes in criteria weights affect employee rankings') }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary" onclick="resetAnalysis()">
-            <i class="fas fa-undo me-1"></i>
+    <div class="flex gap-2">
+        <x-ui.button 
+            variant="outline-secondary" 
+            icon="fas fa-undo"
+            onclick="resetAnalysis()"
+            id="resetBtn">
             {{ __('Reset') }}
-        </button>
-        <button class="btn btn-outline-info" onclick="exportResults()">
-            <i class="fas fa-download me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            variant="outline-info" 
+            icon="fas fa-download"
+            onclick="exportResults()"
+            id="exportBtn">
             {{ __('Export Results') }}
-        </button>
-        <a href="{{ route('analysis.index') }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('analysis.index') }}" 
+            variant="outline-primary" 
+            icon="fas fa-arrow-left">
             {{ __('Back to Analysis') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 
@@ -89,11 +97,15 @@
                         </div>
                     </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary" id="runAnalysisBtn">
-                            <i class="fas fa-play me-1"></i>
+                    <div class="grid">
+                        <x-ui.button 
+                            variant="primary" 
+                            type="submit" 
+                            icon="fas fa-play" 
+                            id="runAnalysisBtn" 
+                            class="w-full">
                             {{ __('Run Analysis') }}
-                        </button>
+                        </x-ui.button>
                     </div>
                 </form>
             </div>
