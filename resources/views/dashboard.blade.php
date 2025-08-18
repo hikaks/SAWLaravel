@@ -5,65 +5,61 @@
 
 @section('content')
 <!-- Modern Statistics Grid -->
-<div class="row g-4 mb-5">
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #0366d6 0%, #0256c7 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $stats['total_employees'] }}</div>
-                <div class="stats-label">{{ __('Total Employees') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-user-group"></i>
-            </div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <!-- Total Employees -->
+    <div class="stats-card bg-gradient-to-br from-primary-500 to-primary-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $stats['total_employees'] }}</div>
+            <div class="stats-label">{{ __('Total Employees') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-user-group"></i>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $stats['total_criterias'] }}</div>
-                <div class="stats-label">{{ __('Evaluation Criteria') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-sliders"></i>
-            </div>
+    <!-- Evaluation Criteria -->
+    <div class="stats-card bg-gradient-to-br from-warning-500 to-warning-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $stats['total_criterias'] }}</div>
+            <div class="stats-label">{{ __('Evaluation Criteria') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-sliders"></i>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $stats['total_evaluations'] }}</div>
-                <div class="stats-label">{{ __('Completed Evaluations') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-clipboard-check"></i>
-            </div>
+    <!-- Completed Evaluations -->
+    <div class="stats-card bg-gradient-to-br from-info-500 to-info-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $stats['total_evaluations'] }}</div>
+            <div class="stats-label">{{ __('Completed Evaluations') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-clipboard-check"></i>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $stats['total_weight'] ?? 100 }}%</div>
-                <div class="stats-label">{{ __('System Ready') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
+    <!-- System Ready -->
+    <div class="stats-card bg-gradient-to-br from-success-500 to-success-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $stats['total_weight'] ?? 100 }}%</div>
+            <div class="stats-label">{{ __('System Ready') }}</div>
+        </div>
+        <div class="stats-icon">
+            <i class="fas fa-check-circle"></i>
         </div>
     </div>
 </div>
 
-<!-- Main Content Grid - Improved Layout -->
-<div class="row g-4">
-    <!-- Top 10 Performers Card - Simplified -->
-    <div class="col-lg-8">
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Top 10 Performers Card -->
+    <div class="lg:col-span-2">
         <div class="card">
             <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 d-flex align-items-center">
-                        <i class="fas fa-trophy me-2" style="color: #f59e0b;"></i>
+                <div class="flex items-center justify-between">
+                    <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                        <i class="fas fa-trophy text-warning-500"></i>
                         {{ __('Top 10 Performers') }}
                     </h6>
                     <x-ui.button 
@@ -77,247 +73,368 @@
             </div>
             <div class="card-body">
                 @if($topPerformers->count() > 0)
-                    <div class="row g-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         @foreach($topPerformers->take(10) as $index => $performer)
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center p-3 bg-light rounded">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="bg-{{ $index < 3 ? 'success' : 'primary' }} text-white rounded-circle d-flex align-items-center justify-content-center"
-                                         style="width: 40px; height: 40px; font-size: 14px; font-weight: 600;">
-                                        #{{ $index + 1 }}
-                                    </div>
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div class="flex-shrink-0 mr-4">
+                                <div class="w-10 h-10 {{ $index < 3 ? 'bg-success-500' : 'bg-primary-500' }} text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                                    #{{ $index + 1 }}
                                 </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold">{{ $performer->employee->name }}</div>
-                                    <div class="text-muted small">{{ $performer->employee->department }}</div>
-                                    <div class="d-flex align-items-center mt-1">
-                                        <div class="progress flex-grow-1 me-2" style="height: 4px;">
-                                            <div class="progress-bar bg-{{ $index < 3 ? 'success' : 'primary' }}"
-                                                 style="width: {{ round($performer->total_score * 100, 2) }}%"></div>
-                                        </div>
-                                        <small class="fw-semibold">{{ round($performer->total_score * 100, 2) }}%</small>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-900">{{ $performer->employee->name }}</div>
+                                <div class="text-sm text-gray-500">{{ $performer->employee->department }}</div>
+                                <div class="flex items-center mt-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-1 mr-3">
+                                        <div class="h-1 {{ $index < 3 ? 'bg-success-500' : 'bg-primary-500' }} rounded-full transition-all duration-300"
+                                             style="width: {{ round($performer->total_score * 100, 2) }}%"></div>
                                     </div>
+                                    <span class="text-sm font-semibold text-gray-700">{{ round($performer->total_score * 100, 2) }}%</span>
                                 </div>
                             </div>
                         </div>
                         @endforeach
                     </div>
                 @else
-                    <div class="text-center py-4">
-                        <div class="mb-3">
-                            <i class="fas fa-chart-line text-muted" style="font-size: 48px;"></i>
-                        </div>
-                        <h6 class="text-muted">{{ __('No Evaluation Results Yet') }}</h6>
-                        <p class="text-muted mb-4">{{ __('Complete employee evaluations to see performance rankings here.') }}</p>
-                        <x-ui.button 
-                            href="{{ route('evaluations.index') }}" 
-                            variant="primary" 
-                            icon="fas fa-plus">
-                            {{ __('Start Evaluating') }}
-                        </x-ui.button>
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-chart-bar text-4xl mb-4 opacity-50"></i>
+                        <p>{{ __('No evaluation results available yet') }}</p>
+                        <p class="text-sm">{{ __('Complete some evaluations to see the top performers') }}</p>
                     </div>
                 @endif
             </div>
         </div>
     </div>
 
-    <!-- Right Sidebar - Single Card -->
-    <div class="col-lg-4">
-        <!-- Recent Activity Card -->
+    <!-- Quick Actions & System Status -->
+    <div class="space-y-6">
+        <!-- Quick Actions Card -->
         <div class="card">
             <div class="card-header">
-                <h6 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-clock me-2" style="color: #06b6d4;"></i>
-                    {{ __('Recent Activity') }}
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-bolt text-warning-500"></i>
+                    {{ __('Quick Actions') }}
                 </h6>
             </div>
-            <div class="card-body">
-                @if($latestEvaluations->count() > 0)
-                    @foreach($latestEvaluations as $evaluation)
-                    <div class="d-flex align-items-start mb-3 {{ !$loop->last ? 'pb-3 border-bottom' : '' }}">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center"
-                                 style="width: 36px; height: 36px;">
-                                <i class="fas fa-clipboard-check text-primary"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="fw-semibold">{{ $evaluation->employee->name }}</div>
-                            <div class="text-muted small">{{ $evaluation->criteria->name }}</div>
-                            <div class="d-flex align-items-center justify-content-between mt-1">
-                                <span class="badge bg-{{ $evaluation->score >= 80 ? 'success' : ($evaluation->score >= 60 ? 'warning' : 'danger') }}">
-                                    {{ $evaluation->score }}
-                                </span>
-                                <small class="text-muted">{{ $evaluation->created_at->diffForHumans() }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-calendar-times text-muted mb-2" style="font-size: 32px;"></i>
-                        <p class="text-muted mb-0">{{ __('No recent activity') }}</p>
-                    </div>
-                @endif
+            <div class="card-body space-y-3">
+                <x-ui.button 
+                    href="{{ route('employees.create') }}" 
+                    variant="outline-primary" 
+                    size="sm" 
+                    icon="fas fa-user-plus"
+                    class="w-full justify-start">
+                    {{ __('Add Employee') }}
+                </x-ui.button>
+                
+                <x-ui.button 
+                    href="{{ route('criterias.create') }}" 
+                    variant="outline-success" 
+                    size="sm" 
+                    icon="fas fa-plus-circle"
+                    class="w-full justify-start">
+                    {{ __('Add Criteria') }}
+                </x-ui.button>
+                
+                <x-ui.button 
+                    href="{{ route('evaluations.create') }}" 
+                    variant="outline-info" 
+                    size="sm" 
+                    icon="fas fa-clipboard-list"
+                    class="w-full justify-start">
+                    {{ __('New Evaluation') }}
+                </x-ui.button>
+                
+                <x-ui.button 
+                    href="{{ route('analysis.index') }}" 
+                    variant="outline-warning" 
+                    size="sm" 
+                    icon="fas fa-chart-bar"
+                    class="w-full justify-start">
+                    {{ __('Advanced Analysis') }}
+                </x-ui.button>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Bottom Section - Four Equal Columns for Better Balance -->
-<div class="row g-4 mt-3">
-    <!-- Department Comparison -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card h-100">
+        <!-- System Status Card -->
+        <div class="card">
             <div class="card-header">
-                <h6 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-chart-bar me-2" style="color: #10b981;"></i>
-                    {{ __('Department Comparison') }}
-                </h6>
-            </div>
-            <div class="card-body">
-                @if($departmentStats->count() > 0)
-                    @foreach($departmentStats->take(5) as $dept)
-                    @php
-                        $percentage = $stats['total_employees'] > 0 ? round(($dept->count / $stats['total_employees']) * 100, 1) : 0;
-                        $color = $percentage >= 30 ? 'success' : ($percentage >= 20 ? 'warning' : 'info');
-                    @endphp
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-semibold small">{{ $dept->department }}</span>
-                            <span class="badge bg-{{ $color }}">{{ $dept->count }}</span>
-                        </div>
-                        <div class="progress" style="height: 6px;">
-                            <div class="progress-bar bg-{{ $color }}" 
-                                 style="width: {{ $percentage }}%"
-                                 title="{{ $percentage }}% of total employees"></div>
-                        </div>
-                        <small class="text-muted">{{ $percentage }}% {{ __('of total') }}</small>
-                    </div>
-                    @endforeach
-                    @if($departmentStats->count() > 5)
-                        <div class="text-center mt-2">
-                            <small class="text-muted">+{{ $departmentStats->count() - 5 }} {{ __('more departments') }}</small>
-                        </div>
-                    @endif
-                @else
-                    <div class="text-center py-3">
-                        <i class="fas fa-building text-muted mb-2" style="font-size: 24px;"></i>
-                        <p class="text-muted mb-0 small">{{ __('No department data') }}</p>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Criteria Distribution -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h6 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-sliders me-2" style="color: #f59e0b;"></i>
-                    {{ __('Criteria') }}
-                </h6>
-            </div>
-            <div class="card-body">
-                @if($criteriaStats->count() > 0)
-                    @foreach($criteriaStats as $criteria)
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-warning bg-opacity-10 rounded d-flex align-items-center justify-content-center me-2"
-                                 style="width: 32px; height: 32px;">
-                                <i class="fas fa-sliders text-warning" style="font-size: 14px;"></i>
-                            </div>
-                            <div>
-                                <div class="fw-semibold small">{{ ucfirst($criteria->type) }}</div>
-                                <small class="text-muted">{{ $criteria->count }} {{ __('criteria') }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                @else
-                    <div class="text-center py-3">
-                        <i class="fas fa-sliders text-muted mb-2" style="font-size: 24px;"></i>
-                        <p class="text-muted mb-0 small">{{ __('No criteria data') }}</p>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- System Status -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h6 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-chart-line me-2" style="color: #06b6d4;"></i>
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-cogs text-info-500"></i>
                     {{ __('System Status') }}
                 </h6>
             </div>
-            <div class="card-body">
-                <div class="text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-server text-primary" style="font-size: 32px;"></i>
+            <div class="card-body space-y-4">
+                <!-- Criteria Weight Status -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-balance-scale text-gray-400"></i>
+                        <span class="text-sm text-gray-700">{{ __('Criteria Weight') }}</span>
                     </div>
-                    <div class="fw-bold text-primary mb-1">{{ $stats['total_weight'] ?? 100 }}%</div>
-                    <small class="text-muted">{{ __('System Ready') }}</small>
-                </div>
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span>{{ __('Employees') }}</span>
-                        <span class="fw-semibold">{{ $stats['total_employees'] }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span>{{ __('Criteria') }}</span>
-                        <span class="fw-semibold">{{ $stats['total_criterias'] }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between small">
-                        <span>{{ __('Evaluations') }}</span>
-                        <span class="fw-semibold">{{ $stats['total_evaluations'] }}</span>
+                    <div class="flex items-center gap-2">
+                        @if(($stats['total_weight'] ?? 0) == 100)
+                            <span class="badge badge-success">{{ $stats['total_weight'] }}%</span>
+                        @else
+                            <span class="badge badge-warning">{{ $stats['total_weight'] ?? 0 }}%</span>
+                        @endif
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Quick Stats -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h6 class="mb-0 d-flex align-items-center">
-                    <i class="fas fa-tachometer-alt me-2" style="color: #8b5cf6;"></i>
-                    {{ __('Quick Stats') }}
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="text-center p-2 bg-light rounded">
-                            <div class="fw-bold text-success">{{ $topPerformers->count() }}</div>
-                            <small class="text-muted">{{ __('Top Performers') }}</small>
-                        </div>
+                <!-- Data Completeness -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-database text-gray-400"></i>
+                        <span class="text-sm text-gray-700">{{ __('Data Completeness') }}</span>
                     </div>
-                    <div class="col-6">
-                        <div class="text-center p-2 bg-light rounded">
-                            <div class="fw-bold text-primary">{{ $recentPeriods->count() }}</div>
-                            <small class="text-muted">{{ __('Periods') }}</small>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        @php
+                            $completeness = 0;
+                            if ($stats['total_employees'] > 0) $completeness += 25;
+                            if ($stats['total_criterias'] > 0) $completeness += 25;
+                            if ($stats['total_evaluations'] > 0) $completeness += 25;
+                            if (($stats['total_weight'] ?? 0) == 100) $completeness += 25;
+                        @endphp
+                        @if($completeness >= 75)
+                            <span class="badge badge-success">{{ $completeness }}%</span>
+                        @elseif($completeness >= 50)
+                            <span class="badge badge-warning">{{ $completeness }}%</span>
+                        @else
+                            <span class="badge badge-danger">{{ $completeness }}%</span>
+                        @endif
                     </div>
-                    <div class="col-6">
-                        <div class="text-center p-2 bg-light rounded">
-                            <div class="fw-bold text-warning">{{ $latestEvaluations->count() }}</div>
-                            <small class="text-muted">{{ __('Recent') }}</small>
-                        </div>
+                </div>
+
+                <!-- System Health -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-heart text-gray-400"></i>
+                        <span class="text-sm text-gray-700">{{ __('System Health') }}</span>
                     </div>
-                    <div class="col-6">
-                        <div class="text-center p-2 bg-light rounded">
-                            <div class="fw-bold text-info">{{ $departmentStats->count() }}</div>
-                            <small class="text-muted">{{ __('Depts') }}</small>
-                        </div>
-                    </div>
+                    <span class="badge badge-success">{{ __('Healthy') }}</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Recent Activity & Charts -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
+    <!-- Performance Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-chart-line text-primary-500"></i>
+                {{ __('Performance Trends') }}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="relative">
+                <canvas id="performanceChart" class="w-full h-64"></canvas>
+                <div id="chartLoading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                    <div class="loading-spinner w-8 h-8"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Distribution -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-chart-pie text-success-500"></i>
+                {{ __('Department Distribution') }}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="relative">
+                <canvas id="departmentChart" class="w-full h-64"></canvas>
+                <div id="deptChartLoading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                    <div class="loading-spinner w-8 h-8"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+@if(isset($recentActivities) && $recentActivities->count() > 0)
+<div class="card mt-8">
+    <div class="card-header">
+        <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+            <i class="fas fa-clock text-info-500"></i>
+            {{ __('Recent Activities') }}
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="space-y-4">
+            @foreach($recentActivities->take(5) as $activity)
+            <div class="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-{{ $activity->icon ?? 'info-circle' }} text-sm"></i>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-900">{{ $activity->description }}</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ $activity->created_at->diffForHumans() }}</p>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts
+    initializeCharts();
+    
+    // Load dashboard data
+    loadDashboardData();
+    
+    // Auto-refresh every 5 minutes
+    setInterval(loadDashboardData, 300000);
+});
+
+function initializeCharts() {
+    // Performance Chart
+    const perfCtx = document.getElementById('performanceChart');
+    if (perfCtx) {
+        const performanceChart = new Chart(perfCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '{{ __("Average Performance") }}',
+                    data: [],
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        window.performanceChart = performanceChart;
+    }
+
+    // Department Chart
+    const deptCtx = document.getElementById('departmentChart');
+    if (deptCtx) {
+        const departmentChart = new Chart(deptCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        'rgb(59, 130, 246)',
+                        'rgb(16, 185, 129)',
+                        'rgb(245, 158, 11)',
+                        'rgb(239, 68, 68)',
+                        'rgb(139, 92, 246)',
+                        'rgb(236, 72, 153)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+        
+        window.departmentChart = departmentChart;
+    }
+}
+
+function loadDashboardData() {
+    // Load chart data
+    fetch('{{ route("dashboard.chart-data") }}')
+        .then(response => response.json())
+        .then(data => {
+            updateCharts(data);
+        })
+        .catch(error => {
+            console.error('Error loading dashboard data:', error);
+        })
+        .finally(() => {
+            // Hide loading indicators
+            document.getElementById('chartLoading')?.classList.add('hidden');
+            document.getElementById('deptChartLoading')?.classList.add('hidden');
+        });
+}
+
+function updateCharts(data) {
+    // Update performance chart
+    if (window.performanceChart && data.performance) {
+        window.performanceChart.data.labels = data.performance.labels;
+        window.performanceChart.data.datasets[0].data = data.performance.data;
+        window.performanceChart.update();
+    }
+    
+    // Update department chart
+    if (window.departmentChart && data.departments) {
+        window.departmentChart.data.labels = data.departments.labels;
+        window.departmentChart.data.datasets[0].data = data.departments.data;
+        window.departmentChart.update();
+    }
+}
+
+// Stats card animations
+document.addEventListener('DOMContentLoaded', function() {
+    const statsCards = document.querySelectorAll('.stats-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => {
+                    entry.target.classList.add('stats-card-animate');
+                }, index * 100);
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+    
+    statsCards.forEach(card => {
+        observer.observe(card);
+    });
+});
+</script>
+@endpush

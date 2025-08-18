@@ -1,9 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Import base styles with Tailwind CSS */
+@import './base.css';
 
-/* Import custom component styles */
+/* Import component styles */
+@import './components/datatables.css';
+@import './components/modals.css';
+@import './components/dropdowns.css';
+
+/* Note: Old CSS files temporarily disabled during migration
 @import './employees.css';
 @import './criterias.css';
 @import './evaluations.css';
 @import './results.css';
+@import './custom-styles.css';
+*/
