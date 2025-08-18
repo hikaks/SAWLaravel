@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Import custom component styles */
+@import './employees.css';
+@import './criterias.css';
+@import './evaluations.css';
+@import './results.css';
