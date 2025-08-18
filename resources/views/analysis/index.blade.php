@@ -5,602 +5,265 @@
 
 @section('content')
 <!-- Header Section -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
-        <h1 class="h3 mb-1 fw-bold">{{ __('Advanced Analytics') }}</h1>
-        <p class="text-muted mb-0">{{ __('Comprehensive analysis tools for decision support system') }}</p>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Advanced Analytics') }}</h1>
+        <p class="text-gray-600">{{ __('Comprehensive analysis tools for decision support system') }}</p>
     </div>
     <div class="flex flex-wrap gap-2">
-        <x-ui.button 
-            variant="outline-info" 
-            icon="fas fa-history"
-            onclick="showAnalysisHistory()"
-            id="historyBtn">
-            {{ __('Analysis History') }}
-        </x-ui.button>
-        <x-ui.button 
-            variant="outline-primary" 
-            icon="fas fa-download"
-            onclick="exportDashboard()"
-            id="exportDashboardBtn">
-            {{ __('Export Dashboard') }}
-        </x-ui.button>
-        <x-ui.button 
-            href="{{ route('analysis.debug') }}" 
-            variant="outline-danger" 
-            icon="fas fa-bug">
-            {{ __('Debug') }}
-        </x-ui.button>
+        <x-ui.button variant="outline-info" icon="fas fa-history" onclick="showAnalysisHistory()">{{ __('Analysis History') }}</x-ui.button>
+        <x-ui.button variant="outline-primary" icon="fas fa-download" onclick="exportDashboard()">{{ __('Export Dashboard') }}</x-ui.button>
+        <x-ui.button href="{{ route('analysis.debug') }}" variant="outline-danger" icon="fas fa-bug">{{ __('Debug') }}</x-ui.button>
     </div>
 </div>
 
 <!-- Statistics Cards -->
-<div class="row g-4 mb-5">
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $availablePeriods->count() }}</div>
-                <div class="stats-label">{{ __('Available Periods') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="stats-card bg-gradient-to-br from-purple-500 to-purple-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $availablePeriods->count() }}</div>
+            <div class="stats-label">{{ __('Available Periods') }}</div>
         </div>
+        <div class="stats-icon"><i class="fas fa-calendar-alt"></i></div>
     </div>
-
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #e83e8c 0%, #c13584 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $criterias->count() }}</div>
-                <div class="stats-label">{{ __('Analysis Criteria') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-sliders-h"></i>
-            </div>
+    <div class="stats-card bg-gradient-to-br from-indigo-500 to-indigo-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $totalEmployees }}</div>
+            <div class="stats-label">{{ __('Analyzed Employees') }}</div>
         </div>
+        <div class="stats-icon"><i class="fas fa-users"></i></div>
     </div>
-
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);">
-            <div class="stats-content">
-                <div class="stats-number">{{ $employees->count() }}</div>
-                <div class="stats-label">{{ __('Total Employees') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-users"></i>
-            </div>
+    <div class="stats-card bg-gradient-to-br from-green-500 to-green-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $activeCriterias }}</div>
+            <div class="stats-label">{{ __('Active Criteria') }}</div>
         </div>
+        <div class="stats-icon"><i class="fas fa-sliders-h"></i></div>
     </div>
-
-    <div class="col-xl-3 col-md-6">
-        <div class="stats-card" style="background: linear-gradient(135deg, #fd7e14 0%, #dc3545 100%);">
-            <div class="stats-content">
-                <div class="stats-number">5</div>
-                <div class="stats-label">{{ __('Analysis Tools') }}</div>
-            </div>
-            <div class="stats-icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
+    <div class="stats-card bg-gradient-to-br from-red-500 to-red-600">
+        <div class="stats-content">
+            <div class="stats-number">{{ $totalAnalyses ?? 0 }}</div>
+            <div class="stats-label">{{ __('Total Analyses') }}</div>
         </div>
+        <div class="stats-icon"><i class="fas fa-chart-bar"></i></div>
     </div>
 </div>
 
 <!-- Analysis Tools Grid -->
-<div class="row g-4">
-    <!-- Sensitivity Analysis Card -->
-    <div class="col-lg-6 col-xl-4">
-        <div class="card h-100 analysis-card" data-tool="sensitivity">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="analysis-icon bg-primary">
-                        <i class="fas fa-balance-scale"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="card-title mb-0">{{ __('Sensitivity Analysis') }}</h5>
-                        <small class="text-muted">{{ __('Analyze weight impact') }}</small>
-                    </div>
-                </div>
-                <p class="card-text">{{ __('Evaluate how changes in criteria weights affect employee rankings and identify the most sensitive criteria.') }}</p>
-                <div class="mt-auto">
-                    <a href="{{ route('analysis.sensitivity.view') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-play me-1"></i>
-                        {{ __('Start Analysis') }}
-                    </a>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="previewSensitivity()">
-                        <i class="fas fa-eye me-1"></i>
-                        {{ __('Preview') }}
-                    </button>
-                </div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Sensitivity Analysis -->
+    <div class="card hover:shadow-lg transition-shadow duration-300">
+        <div class="card-body text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-chart-line text-2xl"></i>
             </div>
+            <h5 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Sensitivity Analysis') }}</h5>
+            <p class="text-gray-600 text-sm mb-4">{{ __('Analyze how changes in criteria weights affect rankings') }}</p>
+            <x-ui.button href="{{ route('analysis.sensitivity.view') }}" variant="outline-primary" size="sm" class="w-full">
+                {{ __('Start Analysis') }}
+            </x-ui.button>
         </div>
     </div>
 
-    <!-- What-if Scenarios Card -->
-    <div class="col-lg-6 col-xl-4">
-        <div class="card h-100 analysis-card" data-tool="what-if">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="analysis-icon bg-warning">
-                        <i class="fas fa-question-circle"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="card-title mb-0">{{ __('What-if Scenarios') }}</h5>
-                        <small class="text-muted">{{ __('Scenario planning') }}</small>
-                    </div>
-                </div>
-                <p class="card-text">{{ __('Create and compare different scenarios by modifying criteria weights, employee scores, or evaluation criteria.') }}</p>
-                <div class="mt-auto">
-                    <a href="{{ route('analysis.what-if.view') }}" class="btn btn-warning btn-sm">
-                        <i class="fas fa-play me-1"></i>
-                        {{ __('Start Analysis') }}
-                    </a>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="previewWhatIf()">
-                        <i class="fas fa-eye me-1"></i>
-                        {{ __('Preview') }}
-                    </button>
-                </div>
+    <!-- What-If Scenarios -->
+    <div class="card hover:shadow-lg transition-shadow duration-300">
+        <div class="card-body text-center">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-question-circle text-2xl"></i>
             </div>
+            <h5 class="text-lg font-semibold text-gray-900 mb-2">{{ __('What-If Scenarios') }}</h5>
+            <p class="text-gray-600 text-sm mb-4">{{ __('Simulate different scoring scenarios and outcomes') }}</p>
+            <x-ui.button href="{{ route('analysis.what-if.view') }}" variant="outline-success" size="sm" class="w-full">
+                {{ __('Create Scenario') }}
+            </x-ui.button>
         </div>
     </div>
 
-    <!-- Multi-period Comparison Card -->
-    <div class="col-lg-6 col-xl-4">
-        <div class="card h-100 analysis-card" data-tool="comparison">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="analysis-icon bg-info">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="card-title mb-0">{{ __('Multi-period Comparison') }}</h5>
-                        <small class="text-muted">{{ __('Historical comparison') }}</small>
-                    </div>
-                </div>
-                <p class="card-text">{{ __('Compare performance across multiple evaluation periods with detailed statistics and trend analysis.') }}</p>
-                <div class="mt-auto">
-                    <a href="{{ route('analysis.comparison.view') }}" class="btn btn-info btn-sm">
-                        <i class="fas fa-play me-1"></i>
-                        {{ __('Start Analysis') }}
-                    </a>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="previewComparison()">
-                        <i class="fas fa-eye me-1"></i>
-                        {{ __('Preview') }}
-                    </button>
-                </div>
+    <!-- Multi-Period Comparison -->
+    <div class="card hover:shadow-lg transition-shadow duration-300">
+        <div class="card-body text-center">
+            <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-balance-scale text-2xl"></i>
             </div>
+            <h5 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Period Comparison') }}</h5>
+            <p class="text-gray-600 text-sm mb-4">{{ __('Compare performance across different evaluation periods') }}</p>
+            <x-ui.button href="{{ route('analysis.comparison.view') }}" variant="outline-warning" size="sm" class="w-full">
+                {{ __('Compare Periods') }}
+            </x-ui.button>
         </div>
     </div>
 
-    <!-- Performance Forecasting Card -->
-    <div class="col-lg-6 col-xl-4">
-        <div class="card h-100 analysis-card" data-tool="forecast">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="analysis-icon bg-success">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="card-title mb-0">{{ __('Performance Forecasting') }}</h5>
-                        <small class="text-muted">{{ __('Predictive analysis') }}</small>
-                    </div>
-                </div>
-                <p class="card-text">{{ __('Predict future performance trends using historical data with multiple forecasting methods.') }}</p>
-                <div class="mt-auto">
-                    <a href="{{ route('analysis.forecast.view') }}" class="btn btn-success btn-sm">
-                        <i class="fas fa-play me-1"></i>
-                        {{ __('Start Analysis') }}
-                    </a>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="previewForecast()">
-                        <i class="fas fa-eye me-1"></i>
-                        {{ __('Preview') }}
-                    </button>
-                </div>
+    <!-- Performance Forecast -->
+    <div class="card hover:shadow-lg transition-shadow duration-300">
+        <div class="card-body text-center">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-crystal-ball text-2xl"></i>
             </div>
+            <h5 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Performance Forecast') }}</h5>
+            <p class="text-gray-600 text-sm mb-4">{{ __('Predict future performance based on historical data') }}</p>
+            <x-ui.button href="{{ route('analysis.forecast.view') }}" variant="outline-info" size="sm" class="w-full">
+                {{ __('Generate Forecast') }}
+            </x-ui.button>
         </div>
     </div>
 
-    <!-- Advanced Statistics Card -->
-    <div class="col-lg-6 col-xl-4">
-        <div class="card h-100 analysis-card" data-tool="statistics">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="analysis-icon bg-secondary">
-                        <i class="fas fa-calculator"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="card-title mb-0">{{ __('Advanced Statistics') }}</h5>
-                        <small class="text-muted">{{ __('Statistical analysis') }}</small>
-                    </div>
-                </div>
-                <p class="card-text">{{ __('Comprehensive statistical analysis including correlation, variance, and distribution analysis.') }}</p>
-                <div class="mt-auto">
-                    <button class="btn btn-secondary btn-sm" onclick="showAdvancedStats()">
-                        <i class="fas fa-play me-1"></i>
-                        {{ __('Start Analysis') }}
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="previewStatistics()">
-                        <i class="fas fa-eye me-1"></i>
-                        {{ __('Preview') }}
-                    </button>
-                </div>
+    <!-- Advanced Statistics -->
+    <div class="card hover:shadow-lg transition-shadow duration-300">
+        <div class="card-body text-center">
+            <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-calculator text-2xl"></i>
             </div>
+            <h5 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Advanced Statistics') }}</h5>
+            <p class="text-gray-600 text-sm mb-4">{{ __('Detailed statistical analysis and insights') }}</p>
+            <x-ui.button onclick="performAdvancedStats()" variant="outline-secondary" size="sm" class="w-full">
+                {{ __('View Statistics') }}
+            </x-ui.button>
         </div>
     </div>
 
-    <!-- Quick Analysis Card -->
-    <div class="col-lg-6 col-xl-4">
-        <div class="card h-100 analysis-card border-dashed" data-tool="quick">
-            <div class="card-body text-center">
-                <div class="analysis-icon bg-light text-muted mx-auto mb-3">
-                    <i class="fas fa-lightning-bolt"></i>
-                </div>
-                <h5 class="card-title">{{ __('Quick Analysis') }}</h5>
-                <p class="card-text text-muted">{{ __('Run a quick analysis with default settings for immediate insights.') }}</p>
-                <button class="btn btn-outline-primary" onclick="runQuickAnalysis()">
-                    <i class="fas fa-bolt me-1"></i>
-                    {{ __('Quick Start') }}
-                </button>
+    <!-- Custom Analysis -->
+    <div class="card hover:shadow-lg transition-shadow duration-300">
+        <div class="card-body text-center">
+            <div class="w-16 h-16 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-cogs text-2xl"></i>
             </div>
+            <h5 class="text-lg font-semibold text-gray-900 mb-2">{{ __('Custom Analysis') }}</h5>
+            <p class="text-gray-600 text-sm mb-4">{{ __('Create custom analysis with specific parameters') }}</p>
+            <x-ui.button onclick="showCustomAnalysis()" variant="outline-primary" size="sm" class="w-full">
+                {{ __('Configure') }}
+            </x-ui.button>
         </div>
     </div>
 </div>
 
-<!-- Recent Analysis Section -->
-<div class="row mt-5">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>
-                        {{ __('Recent Analysis') }}
-                    </h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewAllHistory()">
-                        {{ __('View All') }}
-                    </button>
+<!-- Quick Insights -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Performance Overview Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-chart-area text-primary-500"></i>{{ __('Performance Overview') }}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="relative">
+                <canvas id="performanceOverviewChart" class="w-full h-64"></canvas>
+                <div id="chartLoading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                    <div class="loading-spinner w-8 h-8"></div>
                 </div>
             </div>
-            <div class="card-body">
-                <div id="recentAnalysisTable">
-                    <div class="text-center py-4">
-                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">{{ __('No recent analysis found. Start your first analysis above.') }}</p>
-                    </div>
+        </div>
+    </div>
+
+    <!-- Top Insights -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-lightbulb text-warning-500"></i>{{ __('Key Insights') }}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="space-y-4" id="insightsContainer">
+                <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-info-circle text-blue-600"></i>
+                    <span class="text-sm text-blue-800">{{ __('Loading insights...') }}</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Analysis History Modal -->
-<div class="modal fade" id="analysisHistoryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ __('Analysis History') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="analysisHistoryContent">
-                    <!-- Content will be loaded via AJAX -->
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Analysis Modal -->
-<div class="modal fade" id="quickAnalysisModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ __('Quick Analysis') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="quickAnalysisForm">
-                    <div class="mb-3">
-                        <label class="form-label">{{ __('Evaluation Period') }}</label>
-                        <select class="form-select" name="period" required>
-                            @foreach($availablePeriods as $period)
-                                <option value="{{ $period }}">{{ $period }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ __('Analysis Type') }}</label>
-                        <select class="form-select" name="type" required>
-                            <option value="sensitivity">{{ __('Sensitivity Analysis') }}</option>
-                            <option value="comparison">{{ __('Multi-period Comparison') }}</option>
-                            <option value="statistics">{{ __('Advanced Statistics') }}</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-                <button type="button" class="btn btn-primary" onclick="executeQuickAnalysis()">
-                    <i class="fas fa-play me-1"></i>
-                    {{ __('Run Analysis') }}
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-@endsection
-
-@section('styles')
-<style>
-.analysis-card {
-    transition: all 0.3s ease;
-    border: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.analysis-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-}
-
-.analysis-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.5rem;
-}
-
-.border-dashed {
-    border: 2px dashed #dee2e6 !important;
-}
-
-.stats-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
-    padding: 1.5rem;
-    color: white;
-    position: relative;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-}
-
-.stats-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-
-.stats-content {
-    position: relative;
-    z-index: 2;
-}
-
-.stats-number {
-    font-size: 2.5rem;
-    font-weight: 700;
-    line-height: 1;
-    margin-bottom: 0.5rem;
-}
-
-.stats-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
-    font-weight: 500;
-}
-
-.stats-icon {
-    position: absolute;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 3rem;
-    opacity: 0.2;
-}
-
-.card-body {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.card-body .mt-auto {
-    margin-top: auto !important;
-}
-</style>
 @endsection
 
 @push('scripts')
 <script>
-$(document).ready(function() {
-    loadRecentAnalysis();
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnalysisDashboard();
 });
 
-function loadRecentAnalysis() {
-    $.ajax({
-        url: '{{ route("analysis.history") }}',
-        method: 'GET',
-        success: function(response) {
-            if (response.success && response.data.length > 0) {
-                let html = '<div class="table-responsive"><table class="table table-hover">';
-                html += '<thead><tr><th>{{ __("Type") }}</th><th>{{ __("Period") }}</th><th>{{ __("Date") }}</th><th>{{ __("Actions") }}</th></tr></thead><tbody>';
-                
-                response.data.slice(0, 5).forEach(function(analysis) {
-                    html += `<tr>
-                        <td><span class="badge bg-primary">${analysis.type}</span></td>
-                        <td>${analysis.period}</td>
-                        <td>${analysis.created_at}</td>
-                        <td><button class="btn btn-sm btn-outline-primary" onclick="viewAnalysis(${analysis.id})">{{ __("View") }}</button></td>
-                    </tr>`;
-                });
-                
-                html += '</tbody></table></div>';
-                $('#recentAnalysisTable').html(html);
+function initializeAnalysisDashboard() {
+    loadPerformanceChart();
+    loadInsights();
+}
+
+function loadPerformanceChart() {
+    const ctx = document.getElementById('performanceOverviewChart');
+    if (ctx) {
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '{{ __("Average Performance") }}',
+                    data: [],
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
             }
+        });
+        
+        // Load data
+        fetch('{{ route("results.chart-data") }}')
+            .then(response => response.json())
+            .then(data => {
+                chart.data.labels = data.labels;
+                chart.data.datasets[0].data = data.data;
+                chart.update();
+                document.getElementById('chartLoading').classList.add('hidden');
+            });
+    }
+}
+
+function loadInsights() {
+    const container = document.getElementById('insightsContainer');
+    
+    fetch('{{ route("analysis.statistics") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type': 'application/json'
         }
+    })
+    .then(response => response.json())
+    .then(data => {
+        container.innerHTML = '';
+        if (data.insights && data.insights.length > 0) {
+            data.insights.forEach(insight => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-lg';
+                div.innerHTML = `
+                    <i class="fas fa-lightbulb text-yellow-500"></i>
+                    <span class="text-sm text-gray-800">${insight}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error loading insights:', error);
     });
 }
 
 function showAnalysisHistory() {
-    $('#analysisHistoryModal').modal('show');
-    
-    $.ajax({
-        url: '{{ route("analysis.history") }}',
-        method: 'GET',
-        success: function(response) {
-            if (response.success) {
-                let html = '<div class="table-responsive"><table class="table table-hover">';
-                html += '<thead><tr><th>{{ __("Type") }}</th><th>{{ __("Period") }}</th><th>{{ __("Date") }}</th><th>{{ __("Actions") }}</th></tr></thead><tbody>';
-                
-                if (response.data.length > 0) {
-                    response.data.forEach(function(analysis) {
-                        html += `<tr>
-                            <td><span class="badge bg-primary">${analysis.type}</span></td>
-                            <td>${analysis.period}</td>
-                            <td>${analysis.created_at}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="viewAnalysis(${analysis.id})">{{ __("View") }}</button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteAnalysis(${analysis.id})">{{ __("Delete") }}</button>
-                            </td>
-                        </tr>`;
-                    });
-                } else {
-                    html += '<tr><td colspan="4" class="text-center text-muted">{{ __("No analysis history found") }}</td></tr>';
-                }
-                
-                html += '</tbody></table></div>';
-                $('#analysisHistoryContent').html(html);
-            }
-        }
-    });
-}
-
-function runQuickAnalysis() {
-    $('#quickAnalysisModal').modal('show');
-}
-
-function executeQuickAnalysis() {
-    const formData = new FormData($('#quickAnalysisForm')[0]);
-    const type = formData.get('type');
-    const period = formData.get('period');
-    
-    $('#quickAnalysisModal').modal('hide');
-    
-    // Show loading
-    showLoadingToast('{{ __("Running analysis...") }}');
-    
-    let url = '';
-    let data = { evaluation_period: period };
-    
-    switch(type) {
-        case 'sensitivity':
-            url = '{{ route("analysis.sensitivity") }}';
-            break;
-        case 'comparison':
-            url = '{{ route("analysis.comparison") }}';
-            data = { periods: [period] };
-            break;
-        case 'statistics':
-            url = '{{ route("analysis.statistics") }}';
-            data = { periods: [period] };
-            break;
-    }
-    
-    $.ajax({
-        url: url,
-        method: 'POST',
-        data: data,
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            hideLoadingToast();
-            if (response.success) {
-                showSuccessToast('{{ __("Analysis completed successfully") }}');
-                // Show results in modal or redirect
-                showAnalysisResults(type, response.data);
-            } else {
-                showErrorToast('{{ __("Analysis failed") }}');
-            }
-        },
-        error: function(xhr) {
-            hideLoadingToast();
-            showErrorToast('{{ __("Analysis failed") }}');
-        }
-    });
-}
-
-function showAnalysisResults(type, data) {
-    // Implementation depends on the specific result display requirements
-    console.log('Analysis results:', type, data);
-}
-
-function previewSensitivity() {
-    showInfoToast('{{ __("Sensitivity analysis preview - evaluates how criteria weight changes affect rankings") }}');
-}
-
-function previewWhatIf() {
-    showInfoToast('{{ __("What-if scenarios preview - compare different evaluation scenarios") }}');
-}
-
-function previewComparison() {
-    showInfoToast('{{ __("Multi-period comparison preview - analyze trends across time periods") }}');
-}
-
-function previewForecast() {
-    showInfoToast('{{ __("Performance forecasting preview - predict future performance trends") }}');
-}
-
-function previewStatistics() {
-    showInfoToast('{{ __("Advanced statistics preview - comprehensive statistical analysis") }}');
-}
-
-function showAdvancedStats() {
-    // Show modal for advanced statistics configuration
-    showInfoToast('{{ __("Advanced statistics feature - coming soon") }}');
+    // Implementation for analysis history
 }
 
 function exportDashboard() {
-    showInfoToast('{{ __("Dashboard export feature - coming soon") }}');
+    // Implementation for dashboard export
 }
 
-function viewAllHistory() {
-    showAnalysisHistory();
+function performAdvancedStats() {
+    // Implementation for advanced statistics
 }
 
-function viewAnalysis(id) {
-    showInfoToast('{{ __("View analysis feature - coming soon") }}');
-}
-
-function deleteAnalysis(id) {
-    if (confirm('{{ __("Are you sure you want to delete this analysis?") }}')) {
-        showInfoToast('{{ __("Delete analysis feature - coming soon") }}');
-    }
-}
-
-// Toast notification functions
-function showLoadingToast(message) {
-    // Implementation depends on your toast library
-    console.log('Loading:', message);
-}
-
-function hideLoadingToast() {
-    console.log('Hide loading');
-}
-
-function showSuccessToast(message) {
-    console.log('Success:', message);
-}
-
-function showErrorToast(message) {
-    console.log('Error:', message);
-}
-
-function showInfoToast(message) {
-    console.log('Info:', message);
+function showCustomAnalysis() {
+    // Implementation for custom analysis
 }
 </script>
 @endpush
