@@ -1,0 +1,161 @@
+/* Criteria Management Styles */
+
+/* Deleted Criteria Cards */
+.deleted-criteria-card {
+    @apply border border-gray-200 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-gray-300;
+}
+
+.deleted-criteria-card .card-header {
+    @apply bg-amber-50 border-b border-amber-200;
+}
+
+.deleted-criteria-card .criteria-icon {
+    @apply w-12 h-12 rounded-full flex items-center justify-content-center bg-gray-500;
+}
+
+.deleted-criteria-card .criteria-info .row {
+    margin: 0;
+}
+
+.deleted-criteria-card .criteria-info .col-6 {
+    @apply px-1;
+}
+
+.deleted-criteria-card .deleted-info {
+    @apply pt-4 border-t border-gray-100;
+}
+
+.deleted-criteria-card .card-actions {
+    @apply pt-4 border-t border-gray-100;
+}
+
+.deleted-criteria-card .form-check-input:checked {
+    @apply bg-amber-500 border-amber-500;
+}
+
+.deleted-criteria-card .form-check-input:focus {
+    @apply shadow-[0_0_0_0.2rem_rgba(245,158,11,0.25)];
+}
+
+/* Circular Progress */
+.circular-progress circle:nth-child(2) {
+    /* No transitions or animations */
+}
+
+/* Card Styling */
+.card {
+    @apply shadow-sm;
+}
+
+/* Weight Status Card */
+.card-body .row.align-items-center {
+    min-height: 120px;
+}
+
+.bg-opacity-20 {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Button Enhancements */
+.btn-lg {
+    @apply px-6 py-3 text-lg rounded-lg font-semibold;
+}
+
+/* Progress Bar Styling */
+.progress {
+    @apply bg-white bg-opacity-20 rounded-lg overflow-hidden;
+}
+
+.progress-bar {
+    @apply rounded-lg;
+}
+
+/* Table Enhancements */
+.table td {
+    @apply align-middle px-3 py-4;
+}
+
+.table th {
+    @apply bg-gray-50 border-b-2 border-gray-200 font-semibold uppercase text-xs tracking-wider;
+}
+
+.table-hover tbody tr:hover {
+    @apply bg-blue-50 scale-[1.01] transition-all duration-200;
+}
+
+/* Badge Styling */
+.badge {
+    @apply text-xs px-3 py-2 rounded-md font-semibold;
+}
+
+/* Chart Container */
+#weightChart {
+    max-height: 300px;
+    @apply transition-opacity duration-300 relative z-10;
+}
+
+/* Chart loading animation */
+.chart-loading {
+    @apply opacity-70 transition-opacity duration-300;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .circular-progress {
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .circular-progress circle {
+        r: 25 !important;
+        cx: 30 !important;
+        cy: 30 !important;
+    }
+
+    .fs-5 {
+        font-size: 0.9rem !important;
+    }
+
+    .btn-lg {
+        @apply px-4 py-2 text-sm;
+    }
+}
+
+/* Alert Enhancements */
+.alert {
+    @apply border-0 rounded-xl shadow-md;
+}
+
+/* Status Icons */
+.fa-check-circle {
+    color: rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.fa-exclamation-triangle {
+    color: rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.fa-times-circle {
+    color: rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Criteria Weight Status Card */
+.criteria-weight-status {
+    @apply rounded-lg shadow-lg text-white relative overflow-hidden;
+}
+
+.criteria-weight-complete {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.criteria-weight-incomplete {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.criteria-weight-exceeded {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
