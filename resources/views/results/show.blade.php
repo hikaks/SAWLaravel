@@ -10,15 +10,19 @@
         <h1 class="h3 mb-1 fw-bold">{{ __('Evaluation Result Details') }}</h1>
         <p class="text-muted mb-0">{{ __('Detailed SAW calculation results for') }} {{ $result->employee->name }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('employees.show', $result->employee->id) }}" class="btn btn-outline-info">
-            <i class="fas fa-user me-1"></i>
+    <div class="flex gap-2">
+        <x-ui.button 
+            href="{{ route('employees.show', $result->employee->id) }}" 
+            variant="outline-info" 
+            icon="fas fa-user">
             {{ __('Employee Profile') }}
-        </a>
-        <a href="{{ route('results.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i>
+        </x-ui.button>
+        <x-ui.button 
+            href="{{ route('results.index') }}" 
+            variant="outline-secondary" 
+            icon="fas fa-arrow-left">
             {{ __('Back to Results') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 

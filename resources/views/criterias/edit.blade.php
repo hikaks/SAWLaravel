@@ -7,22 +7,26 @@
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <!-- Weight Status Alert -->
-        <div class="alert alert-info mb-4" role="alert">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-info-circle me-3 fs-4"></i>
-                <div class="flex-grow-1">
-                    <h6 class="mb-1">Criteria Weight Status</h6>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>Current total: <strong>{{ $totalWeight }}%</strong></span>
-                        <span>Available remaining: <strong>{{ $remainingWeight }}%</strong></span>
+        <div class="mb-6">
+            <x-ui.alert type="info" title="Criteria Weight Status">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center text-sm">
+                        <span>Current total: <strong class="text-blue-800">{{ $totalWeight }}%</strong></span>
+                        <span>Available remaining: <strong class="text-blue-800">{{ $remainingWeight }}%</strong></span>
                     </div>
-                    <div class="progress mt-2" style="height: 10px;">
-                        <div class="progress-bar bg-{{ $totalWeight == 100 ? 'success' : 'primary' }}"
+                    <div class="w-full bg-blue-200 rounded-full h-2.5">
+                        <div class="bg-{{ $totalWeight == 100 ? 'success' : 'primary' }}-600 h-2.5 rounded-full transition-all duration-300" 
                              style="width: {{ $totalWeight }}%">
                         </div>
                     </div>
+                    @if($remainingWeight <= 0)
+                        <p class="text-sm text-blue-700 mt-2">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Weight limit reached. Consider adjusting existing criteria weights.
+                        </p>
+                    @endif
                 </div>
-            </div>
+            </x-ui.alert>
         </div>
 
         <div class="card">
@@ -185,20 +189,27 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ route('criterias.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>
+                    <div class="flex justify-between items-center">
+                        <x-ui.button 
+                            href="{{ route('criterias.index') }}" 
+                            variant="secondary" 
+                            icon="fas fa-arrow-left">
                             Back
-                        </a>
-                        <div>
-                            <button type="reset" class="btn btn-outline-secondary me-2">
-                                <i class="fas fa-undo me-1"></i>
+                        </x-ui.button>
+                        <div class="flex gap-2">
+                            <x-ui.button 
+                                variant="outline-secondary" 
+                                type="reset" 
+                                icon="fas fa-undo">
                                 Reset
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
-                                <i class="fas fa-save me-1"></i>
+                            </x-ui.button>
+                            <x-ui.button 
+                                variant="primary" 
+                                type="submit" 
+                                icon="fas fa-save" 
+                                id="submitBtn">
                                 Update Criteria
-                            </button>
+                            </x-ui.button>
                         </div>
                     </div>
                 </form>
