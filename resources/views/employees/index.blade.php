@@ -9,30 +9,51 @@
     <div>
         <p class="text-muted mb-0">{{ __('Manage and organize your employee data efficiently') }}</p>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm" onclick="refreshTable()" data-bs-toggle="tooltip" title="{{ __('Refresh Data') }}">
-            <i class="fas fa-sync-alt me-1"></i>
+    <div class="flex flex-wrap gap-2">
+        <x-ui.button 
+            variant="outline-secondary" 
+            size="sm" 
+            icon="fas fa-sync-alt"
+            onclick="refreshTable()" 
+            data-bs-toggle="tooltip" 
+            title="{{ __('Refresh Data') }}"
+            id="refreshBtn">
             {{ __('Refresh') }}
-        </button>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-file-import me-1"></i>
+        </x-ui.button>
+        
+        <div class="relative inline-block">
+            <x-ui.button 
+                variant="success" 
+                size="sm" 
+                icon="fas fa-file-import"
+                data-bs-toggle="dropdown" 
+                aria-expanded="false"
+                class="dropdown-toggle">
                 {{ __('Import') }}
-            </button>
+            </x-ui.button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ route('employees.import-template') }}">
-                    <i class="fas fa-download me-2"></i>{{ __('Download Template') }}
-                </a></li>
+                <li>
+                    <a class="dropdown-item flex items-center" href="{{ route('employees.import-template') }}">
+                        <i class="fas fa-download mr-2 text-success-600"></i>
+                        {{ __('Download Template') }}
+                    </a>
+                </li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" onclick="showImportModal()">
-                    <i class="fas fa-upload me-2"></i>{{ __('Upload Data') }}
-                </a></li>
+                <li>
+                    <a class="dropdown-item flex items-center" href="#" onclick="showImportModal()">
+                        <i class="fas fa-upload mr-2 text-primary-600"></i>
+                        {{ __('Upload Data') }}
+                    </a>
+                </li>
             </ul>
         </div>
-        <a href="{{ route('employees.create') }}" class="btn btn-primary">
-            <i class="fas fa-user-plus me-2"></i>
+        
+        <x-ui.button 
+            href="{{ route('employees.create') }}" 
+            variant="primary" 
+            icon="fas fa-user-plus">
             {{ __('Add Employee') }}
-        </a>
+        </x-ui.button>
     </div>
 </div>
 
@@ -92,16 +113,32 @@
                 <i class="fas fa-list me-2 text-primary"></i>
                 {{ __('Employee Directory') }}
             </h6>
-            <div class="d-flex gap-2">
-                <button class="btn btn-outline-primary btn-sm" onclick="exportData()" data-bs-toggle="tooltip" title="{{ __('Export Data') }}">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button class="btn btn-outline-warning btn-sm" onclick="showRestoreModal()" data-bs-toggle="tooltip" title="{{ __('Restore Deleted Employees') }}">
-                    <i class="fas fa-undo"></i>
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" onclick="toggleFilters()" data-bs-toggle="tooltip" title="{{ __('Toggle Filters') }}">
-                    <i class="fas fa-filter"></i>
-                </button>
+            <div class="flex gap-2">
+                <x-ui.button 
+                    variant="outline-primary" 
+                    size="sm" 
+                    icon="fas fa-download"
+                    onclick="exportData()" 
+                    data-bs-toggle="tooltip" 
+                    title="{{ __('Export Data') }}"
+                    id="exportBtn">
+                </x-ui.button>
+                <x-ui.button 
+                    variant="outline-warning" 
+                    size="sm" 
+                    icon="fas fa-undo"
+                    onclick="showRestoreModal()" 
+                    data-bs-toggle="tooltip" 
+                    title="{{ __('Restore Deleted Employees') }}">
+                </x-ui.button>
+                <x-ui.button 
+                    variant="outline-secondary" 
+                    size="sm" 
+                    icon="fas fa-filter"
+                    onclick="toggleFilters()" 
+                    data-bs-toggle="tooltip" 
+                    title="{{ __('Toggle Filters') }}">
+                </x-ui.button>
             </div>
         </div>
     </div>

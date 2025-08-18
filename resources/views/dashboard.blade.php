@@ -66,10 +66,13 @@
                         <i class="fas fa-trophy me-2" style="color: #f59e0b;"></i>
                         {{ __('Top 10 Performers') }}
                     </h6>
-                    <a href="{{ route('results.index') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye me-1"></i>
+                    <x-ui.button 
+                        href="{{ route('results.index') }}" 
+                        variant="outline-primary" 
+                        size="sm" 
+                        icon="fas fa-eye">
                         {{ __('View All Results') }}
-                    </a>
+                    </x-ui.button>
                 </div>
             </div>
             <div class="card-body">
@@ -106,10 +109,12 @@
                         </div>
                         <h6 class="text-muted">{{ __('No Evaluation Results Yet') }}</h6>
                         <p class="text-muted mb-4">{{ __('Complete employee evaluations to see performance rankings here.') }}</p>
-                        <a href="{{ route('evaluations.index') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i>
+                        <x-ui.button 
+                            href="{{ route('evaluations.index') }}" 
+                            variant="primary" 
+                            icon="fas fa-plus">
                             {{ __('Start Evaluating') }}
-                        </a>
+                        </x-ui.button>
                     </div>
                 @endif
             </div>

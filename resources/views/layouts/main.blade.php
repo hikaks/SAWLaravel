@@ -639,51 +639,58 @@
                 <main class="content-container">
                     <!-- Flash Messages -->
                     @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="mb-6 animate-fade-in">
+                            <x-ui.alert type="success" :dismissible="true">
+                                {{ session('success') }}
+                            </x-ui.alert>
                         </div>
                     @endif
 
                     @if(session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="mb-6 animate-fade-in">
+                            <x-ui.alert type="error" :dismissible="true">
+                                {{ session('error') }}
+                            </x-ui.alert>
                         </div>
                     @endif
 
                     @if(session('warning'))
-                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            {{ session('warning') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="mb-6 animate-fade-in">
+                            <x-ui.alert type="warning" :dismissible="true">
+                                {{ session('warning') }}
+                            </x-ui.alert>
                         </div>
                     @endif
 
                     @if(session('import_errors'))
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <h6><i class="fas fa-exclamation-circle me-2"></i>Import Errors:</h6>
-                            <div style="max-height: 300px; overflow-y: auto;">
-                                @foreach(session('import_errors') as $error)
-                                    <div class="mb-2">
-                                        <strong>Row {{ $error['row'] }}:</strong> {{ $error['error'] }}
-                                        @if(isset($error['data']) && is_array($error['data']))
-                                            <br><small class="text-muted">Data: {{ json_encode($error['data']) }}</small>
-                                        @endif
-                                    </div>
-                                @endforeach
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="mb-6 animate-fade-in">
+                            <x-ui.alert type="error" :dismissible="true" title="{{ __('Import Errors') }}">
+                                <div class="max-h-72 overflow-y-auto space-y-2">
+                                    @foreach(session('import_errors') as $error)
+                                        <div class="bg-danger-25 rounded-md p-3 border border-danger-200">
+                                            <div class="font-semibold text-danger-800">
+                                                {{ __('Row') }} {{ $error['row'] }}:
+                                            </div>
+                                            <div class="text-danger-700 mt-1">
+                                                {{ $error['error'] }}
+                                            </div>
+                                            @if(isset($error['data']) && is_array($error['data']))
+                                                <div class="text-xs text-danger-600 mt-2 font-mono bg-danger-50 p-2 rounded border">
+                                                    {{ __('Data') }}: {{ json_encode($error['data']) }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </x-ui.alert>
                         </div>
                     @endif
 
                     @if(session('info'))
-                        <div class="alert alert-info alert-dismissible fade show" role="alert">
-                            <i class="fas fa-info-circle me-2"></i>
-                            {{ session('info') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="mb-6 animate-fade-in">
+                            <x-ui.alert type="info" :dismissible="true">
+                                {{ session('info') }}
+                            </x-ui.alert>
                         </div>
                     @endif
 
