@@ -1,482 +1,330 @@
 @extends('layouts.main')
 
-@section('title', 'Batch Evaluation Input - SAW Employee Evaluation')
-@section('page-title', 'Batch Employee Evaluation Input')
+@section('title', __('Batch Evaluation') . ' - ' . __('SAW Employee Evaluation'))
+@section('page-title', __('Batch Evaluation'))
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-users-cog text-primary me-2"></i>
-                        Batch Evaluation Input Form
-                    </h5>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="selectAllEmployees">
-                            <i class="fas fa-check-square me-1"></i>Select All
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="clearAllEmployees">
-                            <i class="fas fa-square me-1"></i>Clear All
-                        </button>
-                        <a href="{{ route('evaluations.index') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i>Back to List
-                        </a>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Batch Evaluation') }}</h1>
+        <p class="text-gray-600">{{ __('Evaluate multiple employees for the same period efficiently') }}</p>
+    </div>
+    <x-ui.button href="{{ route('evaluations.index') }}" variant="outline-secondary" icon="fas fa-arrow-left">
+        {{ __('Back to List') }}
+    </x-ui.button>
+</div>
+
+<div class="max-w-6xl mx-auto">
+    <!-- Period Selection -->
+    <div class="card mb-6">
+        <div class="card-header">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-calendar text-primary-500"></i>{{ __('Evaluation Period') }}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-group">
+                    <label for="evaluation_period" class="form-label">{{ __('Period') }} <span class="text-danger-500">*</span></label>
+                    <input type="text" class="form-control" id="evaluation_period" placeholder="{{ __('e.g., 2024-Q1, January 2024') }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="department_filter" class="form-label">{{ __('Filter by Department') }}</label>
+                    <select class="form-select" id="department_filter">
+                        <option value="">{{ __('All Departments') }}</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept }}">{{ $dept }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('Actions') }}</label>
+                    <div class="flex gap-2">
+                        <x-ui.button onclick="loadEmployees()" variant="primary" size="sm" class="flex-1">
+                            {{ __('Load Employees') }}
+                        </x-ui.button>
+                        <x-ui.button onclick="selectAll()" variant="outline-secondary" size="sm">
+                            {{ __('Select All') }}
+                        </x-ui.button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="card-body">
-                @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <form action="{{ route('evaluations.batch-store') }}" method="POST" id="batchEvaluationForm">
-                    @csrf
-                    
-                    <!-- Evaluation Period -->
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <label for="evaluation_period" class="form-label">
-                                <i class="fas fa-calendar me-1"></i>Evaluation Period <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" 
-                                   class="form-control @error('evaluation_period') is-invalid @enderror" 
-                                   id="evaluation_period" 
-                                   name="evaluation_period" 
-                                   value="{{ old('evaluation_period', date('Y-m')) }}" 
-                                   placeholder="YYYY-MM (e.g., 2024-01)"
-                                   required>
-                            <div class="form-text">Format: YYYY-MM (contoh: 2024-01)</div>
-                            @error('evaluation_period')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label">
-                                <i class="fas fa-cog me-1"></i>Options
-                            </label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="overwrite_existing" name="overwrite_existing" value="1">
-                                <label class="form-check-label" for="overwrite_existing">
-                                    Overwrite existing evaluations
-                                </label>
-                            </div>
-                            <div class="form-text">Check this to update existing evaluations for the same period</div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <label class="form-label">
-                                <i class="fas fa-info-circle me-1"></i>Quick Fill
-                            </label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="quickFillScore" min="1" max="100" placeholder="Score">
-                                <button type="button" class="btn btn-outline-primary" id="applyQuickFill">
-                                    <i class="fas fa-fill me-1"></i>Apply to Selected
-                                </button>
-                            </div>
-                            <div class="form-text">Fill all selected cells with the same score</div>
-                        </div>
-                    </div>
-
-                    <!-- Criteria Headers -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="batchEvaluationTable">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th width="50">
-                                        <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
-                                    </th>
-                                    <th width="200">Employee</th>
-                                    <th width="120">Department</th>
-                                    @foreach($criterias as $criteria)
-                                        <th class="text-center" width="120">
-                                            <div class="criteria-header">
-                                                <strong>{{ $criteria->name }}</strong>
-                                                <br>
-                                                <small class="text-muted">
-                                                    Weight: {{ $criteria->weight }}% 
-                                                    <span class="badge bg-{{ $criteria->type === 'benefit' ? 'success' : 'warning' }} ms-1">
-                                                        {{ ucfirst($criteria->type) }}
-                                                    </span>
-                                                </small>
-                                            </div>
-                                        </th>
-                                    @endforeach
-                                    <th width="100" class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($employees as $index => $employee)
-                                    <tr class="employee-row" data-employee-id="{{ $employee->id }}">
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   class="form-check-input employee-checkbox" 
-                                                   name="selected_employees[]" 
-                                                   value="{{ $employee->id }}"
-                                                   id="employee_{{ $employee->id }}">
-                                        </td>
-                                        <td>
-                                            <div class="employee-info">
-                                                <strong>{{ $employee->name }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ $employee->employee_code }}</small>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-info">{{ $employee->department ?? 'N/A' }}</span>
-                                        </td>
-                                        @foreach($criterias as $criteria)
-                                            <td class="text-center">
-                                                <input type="number" 
-                                                       class="form-control form-control-sm score-input" 
-                                                       name="evaluations[{{ $index }}][scores][{{ $criteria->id }}]" 
-                                                       min="1" 
-                                                       max="100" 
-                                                       placeholder="1-100"
-                                                       data-employee-id="{{ $employee->id }}"
-                                                       data-criteria-id="{{ $criteria->id }}"
-                                                       style="width: 80px;">
-                                            </td>
-                                        @endforeach
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-outline-primary btn-sm fill-row-btn" data-employee-id="{{ $employee->id }}">
-                                                <i class="fas fa-fill"></i>
-                                            </button>
-                                        </td>
-                                        
-                                        <!-- Hidden employee_id for form submission -->
-                                        <input type="hidden" name="evaluations[{{ $index }}][employee_id]" value="{{ $employee->id }}">
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Summary Information -->
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6 class="card-title">
-                                        <i class="fas fa-info-circle text-info me-2"></i>Evaluation Summary
-                                    </h6>
-                                    <ul class="list-unstyled mb-0">
-                                        <li><strong>Total Employees:</strong> <span id="totalEmployees">{{ $employees->count() }}</span></li>
-                                        <li><strong>Total Criteria:</strong> <span id="totalCriteria">{{ $criterias->count() }}</span></li>
-                                        <li><strong>Selected Employees:</strong> <span id="selectedCount">0</span></li>
-                                        <li><strong>Total Evaluations:</strong> <span id="totalEvaluations">0</span></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6 class="card-title">
-                                        <i class="fas fa-lightbulb text-warning me-2"></i>Instructions
-                                    </h6>
-                                    <ul class="list-unstyled mb-0 small">
-                                        <li><i class="fas fa-check text-success me-1"></i>Select employees to evaluate</li>
-                                        <li><i class="fas fa-check text-success me-1"></i>Enter scores (1-100) for each criteria</li>
-                                        <li><i class="fas fa-check text-success me-1"></i>Use Quick Fill for bulk scoring</li>
-                                        <li><i class="fas fa-check text-success me-1"></i>Review before submitting</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="row mt-4">
-                        <div class="col-12 text-center">
-                            <button type="button" class="btn btn-outline-secondary me-2" id="previewBtn">
-                                <i class="fas fa-eye me-1"></i>Preview Selected
-                            </button>
-                            <button type="submit" class="btn btn-primary me-2" id="submitBtn">
-                                <i class="fas fa-save me-1"></i>Save Batch Evaluations
-                            </button>
-                            <button type="button" class="btn btn-outline-warning me-2" id="resetBtn">
-                                <i class="fas fa-redo me-1"></i>Reset Form
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Preview Modal -->
-<div class="modal fade" id="previewModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-eye me-2"></i>Evaluation Preview
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Employee Selection -->
+    <div class="card mb-6" id="employeeSelectionCard" style="display: none;">
+        <div class="card-header">
+            <div class="flex items-center justify-between">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-users text-primary-500"></i>{{ __('Select Employees') }}
+                </h6>
+                <span class="badge badge-primary" id="selectedCount">0 {{ __('selected') }}</span>
             </div>
-            <div class="modal-body">
-                <div id="previewContent">
-                    <!-- Preview content will be loaded here -->
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="employeeGrid">
+                <!-- Employees will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Criteria Scoring -->
+    <div class="card mb-6" id="criteriaCard" style="display: none;">
+        <div class="card-header">
+            <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                <i class="fas fa-sliders text-primary-500"></i>{{ __('Criteria Scoring') }}
+            </h6>
+        </div>
+        <div class="card-body">
+            <form id="batchEvaluationForm">
+                <div class="space-y-6" id="criteriaContainer">
+                    @foreach($criterias as $criteria)
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h6 class="font-semibold text-gray-900">{{ $criteria->name }}</h6>
+                                <p class="text-sm text-gray-600">{{ $criteria->description }}</p>
+                                <div class="flex items-center gap-4 mt-2">
+                                    <span class="badge {{ $criteria->type === 'benefit' ? 'badge-success' : 'badge-warning' }}">
+                                        <i class="fas fa-{{ $criteria->type === 'benefit' ? 'arrow-up' : 'arrow-down' }} mr-1"></i>
+                                        {{ $criteria->type === 'benefit' ? __('Benefit') : __('Cost') }}
+                                    </span>
+                                    <span class="text-sm text-gray-600">{{ __('Weight') }}: <span class="font-semibold">{{ $criteria->weight }}%</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label class="form-label">{{ __('Score for all selected employees') }}</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="criteria_{{ $criteria->id }}_score" 
+                                       min="0" 
+                                       step="0.01" 
+                                       placeholder="{{ __('Enter score') }}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">{{ __('Apply to') }}</label>
+                                <div class="flex gap-2">
+                                    <x-ui.button type="button" onclick="applyToAll({{ $criteria->id }})" variant="outline-primary" size="sm">
+                                        {{ __('All Selected') }}
+                                    </x-ui.button>
+                                    <x-ui.button type="button" onclick="applyByDepartment({{ $criteria->id }})" variant="outline-secondary" size="sm">
+                                        {{ __('By Department') }}
+                                    </x-ui.button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Individual scores will be generated here -->
+                        <div id="individual_scores_{{ $criteria->id }}" class="mt-4" style="display: none;">
+                            <!-- Individual employee scores -->
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="$('#batchEvaluationForm').submit()">
-                    <i class="fas fa-save me-1"></i>Confirm & Save
-                </button>
-            </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 justify-end pt-6 border-t border-gray-200 mt-8">
+                    <x-ui.button type="button" variant="outline-secondary" onclick="window.history.back()">
+                        {{ __('Cancel') }}
+                    </x-ui.button>
+                    <x-ui.button type="button" onclick="previewResults()" variant="outline-info">
+                        {{ __('Preview Results') }}
+                    </x-ui.button>
+                    <x-ui.button type="button" onclick="submitBatchEvaluation()" variant="primary">
+                        <i class="fas fa-save mr-2"></i>{{ __('Save Batch Evaluation') }}
+                    </x-ui.button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 @endsection
 
-@push('styles')
-<style>
-    .score-input:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-    }
-    
-    .employee-row.selected {
-        background-color: #f8f9ff;
-    }
-    
-    .criteria-header {
-        font-size: 0.85rem;
-        line-height: 1.2;
-    }
-    
-    .table th {
-        vertical-align: middle;
-        text-align: center;
-    }
-    
-    .employee-info strong {
-        font-size: 0.9rem;
-    }
-    
-    .table-responsive {
-        max-height: 70vh;
-        overflow-y: auto;
-    }
-    
-    .table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-</style>
-@endpush
-
 @push('scripts')
 <script>
-$(document).ready(function() {
-    let totalEmployees = {{ $employees->count() }};
-    let totalCriteria = {{ $criterias->count() }};
+let selectedEmployees = [];
+let employees = [];
+
+function loadEmployees() {
+    const period = document.getElementById('evaluation_period').value;
+    const department = document.getElementById('department_filter').value;
     
-    // Update counters
-    function updateCounters() {
-        let selectedEmployees = $('.employee-checkbox:checked').length;
-        let totalEvaluations = selectedEmployees * totalCriteria;
-        
-        $('#selectedCount').text(selectedEmployees);
-        $('#totalEvaluations').text(totalEvaluations);
+    if (!period.trim()) {
+        Swal.fire({
+            icon: 'warning',
+            title: '{{ __("Warning") }}',
+            text: '{{ __("Please enter evaluation period first") }}'
+        });
+        return;
     }
     
-    // Select/Deselect all employees
-    $('#selectAllCheckbox').change(function() {
-        $('.employee-checkbox').prop('checked', this.checked);
-        $('.employee-row').toggleClass('selected', this.checked);
-        updateCounters();
-    });
+    const params = new URLSearchParams({ period, department });
     
-    $('#selectAllEmployees').click(function() {
-        $('.employee-checkbox').prop('checked', true);
-        $('.employee-row').addClass('selected');
-        $('#selectAllCheckbox').prop('checked', true);
-        updateCounters();
-    });
-    
-    $('#clearAllEmployees').click(function() {
-        $('.employee-checkbox').prop('checked', false);
-        $('.employee-row').removeClass('selected');
-        $('#selectAllCheckbox').prop('checked', false);
-        updateCounters();
-    });
-    
-    // Individual employee selection
-    $('.employee-checkbox').change(function() {
-        $(this).closest('.employee-row').toggleClass('selected', this.checked);
-        
-        // Update select all checkbox
-        let allChecked = $('.employee-checkbox:checked').length === $('.employee-checkbox').length;
-        $('#selectAllCheckbox').prop('checked', allChecked);
-        
-        updateCounters();
-    });
-    
-    // Quick fill functionality
-    $('#applyQuickFill').click(function() {
-        let score = $('#quickFillScore').val();
-        if (score && score >= 1 && score <= 100) {
-            $('.employee-row.selected .score-input').val(score);
-        } else {
-            alert('Please enter a valid score (1-100)');
-        }
-    });
-    
-    // Fill row functionality
-    $('.fill-row-btn').click(function() {
-        let employeeId = $(this).data('employee-id');
-        let score = prompt('Enter score to fill for this employee (1-100):');
-        
-        if (score && score >= 1 && score <= 100) {
-            $(`.score-input[data-employee-id="${employeeId}"]`).val(score);
-        }
-    });
-    
-    // Preview functionality
-    $('#previewBtn').click(function() {
-        let selectedEmployees = [];
-        let hasData = false;
-        
-        $('.employee-row.selected').each(function() {
-            let employeeId = $(this).data('employee-id');
-            let employeeName = $(this).find('.employee-info strong').text();
-            let scores = {};
-            let hasScores = false;
-            
-            $(this).find('.score-input').each(function() {
-                let criteriaId = $(this).data('criteria-id');
-                let score = $(this).val();
-                if (score) {
-                    scores[criteriaId] = score;
-                    hasScores = true;
-                    hasData = true;
-                }
+    fetch(`{{ route('employees.index') }}?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            employees = data.data || [];
+            renderEmployeeGrid();
+            document.getElementById('employeeSelectionCard').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error loading employees:', error);
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Error") }}',
+                text: '{{ __("Failed to load employees") }}'
             });
-            
-            if (hasScores) {
-                selectedEmployees.push({
-                    id: employeeId,
-                    name: employeeName,
-                    scores: scores
-                });
-            }
         });
-        
-        if (!hasData) {
-            alert('Please select employees and enter scores before previewing.');
-            return;
-        }
-        
-        // Generate preview content
-        let previewHtml = `
-            <div class="alert alert-info">
-                <strong>Evaluation Period:</strong> ${$('#evaluation_period').val()}<br>
-                <strong>Selected Employees:</strong> ${selectedEmployees.length}<br>
-                <strong>Overwrite Existing:</strong> ${$('#overwrite_existing').is(':checked') ? 'Yes' : 'No'}
+}
+
+function renderEmployeeGrid() {
+    const grid = document.getElementById('employeeGrid');
+    grid.innerHTML = '';
+    
+    employees.forEach(employee => {
+        const div = document.createElement('div');
+        div.className = 'p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors';
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <input type="checkbox" 
+                       class="form-check-input employee-checkbox" 
+                       value="${employee.id}" 
+                       onchange="updateSelectedEmployees()">
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${employee.name}</div>
+                    <div class="text-sm text-gray-500">${employee.employee_code} • ${employee.department}</div>
+                    <div class="text-sm text-gray-500">${employee.position}</div>
+                </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered">
-                    <thead class="table-primary">
-                        <tr>
-                            <th>Employee</th>
-                            @foreach($criterias as $criteria)
-                            <th class="text-center">{{ $criteria->name }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
         `;
-        
-        selectedEmployees.forEach(employee => {
-            previewHtml += `<tr><td>${employee.name}</td>`;
-            @foreach($criterias as $criteria)
-            previewHtml += `<td class="text-center">${employee.scores[{{ $criteria->id }}] || '-'}</td>`;
-            @endforeach
-            previewHtml += `</tr>`;
+        grid.appendChild(div);
+    });
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+    
+    updateSelectedEmployees();
+}
+
+function updateSelectedEmployees() {
+    selectedEmployees = [];
+    document.querySelectorAll('.employee-checkbox:checked').forEach(cb => {
+        selectedEmployees.push(parseInt(cb.value));
+    });
+    
+    document.getElementById('selectedCount').textContent = `${selectedEmployees.length} {{ __('selected') }}`;
+    
+    if (selectedEmployees.length > 0) {
+        document.getElementById('criteriaCard').style.display = 'block';
+        generateIndividualScoreInputs();
+    } else {
+        document.getElementById('criteriaCard').style.display = 'none';
+    }
+}
+
+function generateIndividualScoreInputs() {
+    @foreach($criterias as $criteria)
+    const container{{ $criteria->id }} = document.getElementById('individual_scores_{{ $criteria->id }}');
+    container{{ $criteria->id }}.innerHTML = '';
+    container{{ $criteria->id }}.style.display = 'block';
+    
+    selectedEmployees.forEach(employeeId => {
+        const employee = employees.find(e => e.id === employeeId);
+        if (employee) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded mb-2';
+            div.innerHTML = `
+                <div class="flex-1">
+                    <span class="font-medium">${employee.name}</span>
+                    <span class="text-sm text-gray-500 ml-2">(${employee.employee_code})</span>
+                </div>
+                <div class="w-32">
+                    <input type="number" 
+                           class="form-control form-control-sm" 
+                           name="scores[${employeeId}][{{ $criteria->id }}]" 
+                           min="0" 
+                           step="0.01" 
+                           placeholder="Score">
+                </div>
+            `;
+            container{{ $criteria->id }}.appendChild(div);
+        }
+    });
+    @endforeach
+}
+
+function applyToAll(criteriaId) {
+    const score = document.getElementById(`criteria_${criteriaId}_score`).value;
+    if (!score) {
+        Swal.fire({
+            icon: 'warning',
+            title: '{{ __("Warning") }}',
+            text: '{{ __("Please enter a score first") }}'
         });
-        
-        previewHtml += `</tbody></table></div>`;
-        
-        $('#previewContent').html(previewHtml);
-        $('#previewModal').modal('show');
-    });
+        return;
+    }
     
-    // Form validation
-    $('#batchEvaluationForm').submit(function(e) {
-        let hasSelectedEmployees = $('.employee-checkbox:checked').length > 0;
-        let hasScores = false;
-        
-        $('.employee-row.selected .score-input').each(function() {
-            if ($(this).val()) {
-                hasScores = true;
-                return false;
-            }
-        });
-        
-        if (!hasSelectedEmployees) {
-            e.preventDefault();
-            alert('Please select at least one employee.');
-            return false;
-        }
-        
-        if (!hasScores) {
-            e.preventDefault();
-            alert('Please enter scores for selected employees.');
-            return false;
-        }
-        
-        if (!$('#evaluation_period').val()) {
-            e.preventDefault();
-            alert('Please enter evaluation period.');
-            return false;
-        }
-        
-        // Show loading
-        $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-1"></i>Saving...').prop('disabled', true);
+    document.querySelectorAll(`input[name*="[${criteriaId}]"]`).forEach(input => {
+        input.value = score;
     });
+}
+
+function submitBatchEvaluation() {
+    const formData = new FormData(document.getElementById('batchEvaluationForm'));
+    formData.append('evaluation_period', document.getElementById('evaluation_period').value);
+    formData.append('selected_employees', JSON.stringify(selectedEmployees));
     
-    // Reset form
-    $('#resetBtn').click(function() {
-        if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
-            $('#batchEvaluationForm')[0].reset();
-            $('.employee-checkbox').prop('checked', false);
-            $('.employee-row').removeClass('selected');
-            $('#selectAllCheckbox').prop('checked', false);
-            updateCounters();
+    fetch('{{ route("evaluations.batch-store") }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
         }
-    });
-    
-    // Score input validation
-    $('.score-input').on('input', function() {
-        let value = parseInt($(this).val());
-        if (value < 1 || value > 100) {
-            $(this).addClass('is-invalid');
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '{{ __("Success") }}',
+                text: data.message
+            }).then(() => {
+                window.location.href = '{{ route("evaluations.index") }}';
+            });
         } else {
-            $(this).removeClass('is-invalid');
+            Swal.fire({
+                icon: 'error',
+                title: '{{ __("Error") }}',
+                text: data.message
+            });
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: '{{ __("Error") }}',
+            text: '{{ __("An error occurred while saving") }}'
+        });
     });
-    
-    // Initialize counters
-    updateCounters();
-});
+}
+
+function previewResults() {
+    // Implementation for preview
+    Swal.fire({
+        icon: 'info',
+        title: '{{ __("Preview") }}',
+        text: '{{ __("Preview functionality will be implemented") }}'
+    });
+}
 </script>
 @endpush

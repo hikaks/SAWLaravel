@@ -4,338 +4,210 @@
 @section('page-title', 'Evaluation Details')
 
 @section('content')
-<div class="row">
-    <div class="col-lg-8">
-        <!-- Evaluation Information Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-clipboard-check text-primary me-2"></i>
-                    Evaluation Information
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Employee:</label>
-                            <div class="fs-5">
-                                <i class="fas fa-user me-2 text-primary"></i>
-                                {{ $evaluation->employee->name }}
-                            </div>
-                            <small class="text-muted">{{ $evaluation->employee->employee_code }}</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Criteria:</label>
-                            <div class="fs-5">
-                                <i class="fas fa-list-check me-2 text-info"></i>
-                                {{ $evaluation->criteria->name }}
-                            </div>
-                            <small class="text-muted">
-                                Weight: {{ $evaluation->criteria->weight }}% |
-                                Type:
-                                @if($evaluation->criteria->type === 'benefit')
-                                    <span class="badge bg-success">Benefit</span>
-                                @else
-                                    <span class="badge bg-warning">Cost</span>
-                                @endif
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Score:</label>
-                            <div class="fs-1 fw-bold">
-                                @if($evaluation->score >= 80)
-                                    <span class="text-success">{{ $evaluation->score }}</span>
-                                @elseif($evaluation->score >= 60)
-                                    <span class="text-warning">{{ $evaluation->score }}</span>
-                                @else
-                                    <span class="text-danger">{{ $evaluation->score }}</span>
-                                @endif
-                                <small class="text-muted">/100</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Period:</label>
-                            <div class="fs-5">
-                                <i class="fas fa-calendar me-2 text-secondary"></i>
-                                {{ $evaluation->evaluation_period }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Date:</label>
-                            <div class="fs-5">
-                                <i class="fas fa-clock me-2 text-secondary"></i>
-                                {{ $evaluation->created_at->format('d M Y, H:i') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Score Visualization -->
-                <div class="mt-4">
-                    <label class="form-label fw-bold">Score Visualization:</label>
-                    <div class="progress" style="height: 30px;">
-                        <div class="progress-bar
-                            @if($evaluation->score >= 80) bg-success
-                            @elseif($evaluation->score >= 60) bg-warning
-                            @else bg-danger
-                            @endif"
-                             style="width: {{ $evaluation->score }}%"
-                             role="progressbar">
-                            <span class="fw-bold">{{ $evaluation->score }}%</span>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between mt-1">
-                        <small>0</small>
-                        <small>25</small>
-                        <small>50</small>
-                        <small>75</small>
-                        <small>100</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Employee Details Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-user text-primary me-2"></i>
-                    Employee Details
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Department:</label>
-                            <div>{{ $evaluation->employee->department ?? 'Not specified' }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Position:</label>
-                            <div>{{ $evaluation->employee->position ?? 'Not specified' }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Email:</label>
-                    <div>{{ $evaluation->employee->email ?? 'Not specified' }}</div>
-                </div>
-            </div>
-        </div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ __('Evaluation Details') }}</h1>
+        <p class="text-gray-600">{{ __('Complete evaluation information and scoring details') }}</p>
     </div>
-
-    <div class="col-lg-4">
-        <!-- Quick Actions Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-tools text-primary me-2"></i>
-                    Quick Actions
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ route('evaluations.edit', $evaluation->id) }}" class="btn btn-warning">
-                        <i class="fas fa-edit me-2"></i>
-                        Edit Evaluation
-                    </a>
-                    <a href="{{ route('evaluations.create') }}?employee_id={{ $evaluation->employee_id }}&criteria_id={{ $evaluation->criteria_id }}" class="btn btn-success">
-                        <i class="fas fa-plus me-2"></i>
-                        Add Similar Evaluation
-                    </a>
-                    <a href="{{ route('evaluations.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>
-                        Back to List
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Score Analysis Card -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-chart-line text-primary me-2"></i>
-                    Score Analysis
-                </h6>
-            </div>
-            <div class="card-body">
-                @if($evaluation->score >= 90)
-                    <div class="text-center">
-                        <i class="fas fa-star fa-3x text-warning mb-3"></i>
-                        <h5 class="text-success">Excellent Performance</h5>
-                        <p class="text-muted">Outstanding achievement in this criteria</p>
-                    </div>
-                @elseif($evaluation->score >= 80)
-                    <div class="text-center">
-                        <i class="fas fa-thumbs-up fa-3x text-success mb-3"></i>
-                        <h5 class="text-primary">Good Performance</h5>
-                        <p class="text-muted">Above average performance</p>
-                    </div>
-                @elseif($evaluation->score >= 70)
-                    <div class="text-center">
-                        <i class="fas fa-check-circle fa-3x text-info mb-3"></i>
-                        <h5 class="text-warning">Average Performance</h5>
-                        <p class="text-muted">Meets basic requirements</p>
-                    </div>
-                @elseif($evaluation->score >= 60)
-                    <div class="text-center">
-                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                        <h5 class="text-warning">Below Average</h5>
-                        <p class="text-muted">Needs improvement</p>
-                    </div>
-                @else
-                    <div class="text-center">
-                        <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
-                        <h5 class="text-danger">Poor Performance</h5>
-                        <p class="text-muted">Significant improvement needed</p>
-                    </div>
-                @endif
-            </div>
-        </div>
+    <div class="flex flex-wrap gap-2">
+        <x-ui.button href="{{ route('evaluations.edit', $evaluation->id) }}" variant="warning" icon="fas fa-edit">{{ __('Edit Evaluation') }}</x-ui.button>
+        <x-ui.button href="{{ route('evaluations.index') }}" variant="outline-secondary" icon="fas fa-arrow-left">{{ __('Back to List') }}</x-ui.button>
     </div>
 </div>
 
-<!-- Related Evaluations -->
-@if($relatedEvaluations->count() > 1)
-<div class="row mt-4">
-    <div class="col-12">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Content -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Evaluation Information -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list text-primary me-2"></i>
-                    Other Evaluations for {{ $evaluation->employee->name }} ({{ $evaluation->evaluation_period }})
-                </h5>
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-clipboard-check text-primary-500"></i>{{ __('Evaluation Information') }}
+                </h6>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Criteria</th>
-                                <th>Weight</th>
-                                <th>Score</th>
-                                <th>Type</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($relatedEvaluations as $relatedEvaluation)
-                                @if($relatedEvaluation->id !== $evaluation->id)
-                                <tr>
-                                    <td>
-                                        <strong>{{ $relatedEvaluation->criteria->name }}</strong>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ $relatedEvaluation->criteria->weight }}%</span>
-                                    </td>
-                                    <td>
-                                        @if($relatedEvaluation->score >= 80)
-                                            <span class="badge bg-success">{{ $relatedEvaluation->score }}</span>
-                                        @elseif($relatedEvaluation->score >= 60)
-                                            <span class="badge bg-warning">{{ $relatedEvaluation->score }}</span>
-                                        @else
-                                            <span class="badge bg-danger">{{ $relatedEvaluation->score }}</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($relatedEvaluation->criteria->type === 'benefit')
-                                            <span class="badge bg-success">Benefit</span>
-                                        @else
-                                            <span class="badge bg-warning">Cost</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ route('evaluations.show', $relatedEvaluation->id) }}" class="btn btn-info">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('evaluations.edit', $relatedEvaluation->id) }}" class="btn btn-warning">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endif
-                            @endforeach
-                        </tbody>
-                    </table>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Employee') }}</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <i class="fas fa-user text-primary-500"></i>
+                            <span class="text-lg font-medium text-gray-900">{{ $evaluation->employee->name }}</span>
+                        </div>
+                        <p class="text-sm text-gray-500">{{ $evaluation->employee->employee_code }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Criteria') }}</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <i class="fas fa-list-check text-info-500"></i>
+                            <span class="text-lg font-medium text-gray-900">{{ $evaluation->criteria->name }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-sm text-gray-500">{{ __('Weight') }}: {{ $evaluation->criteria->weight }}%</span>
+                            @if($evaluation->criteria->type === 'benefit')
+                                <span class="badge badge-success">{{ __('Benefit') }}</span>
+                            @else
+                                <span class="badge badge-warning">{{ __('Cost') }}</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Score') }}</label>
+                        <p class="text-2xl font-bold text-primary-600">{{ $evaluation->score }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Normalized Score') }}</label>
+                        <p class="text-2xl font-bold text-success-600">{{ round($evaluation->normalized_score, 4) }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">{{ __('Weighted Score') }}</label>
+                        <p class="text-2xl font-bold text-warning-600">{{ round($evaluation->weighted_score, 4) }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="text-sm font-medium text-gray-500">{{ __('Evaluation Period') }}</label>
+                    <p class="text-lg font-medium text-gray-900">{{ $evaluation->evaluation_period }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Details -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-calculator text-primary-500"></i>{{ __('Score Calculation') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="space-y-4">
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h6 class="font-semibold text-gray-900 mb-3">{{ __('SAW Method Calculation') }}</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div class="text-sm text-gray-500">{{ __('Raw Score') }}</div>
+                                <div class="text-xl font-bold text-gray-900">{{ $evaluation->score }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{{ __('Normalization') }}</div>
+                                <div class="text-lg text-gray-700">÷ {{ $maxScore ?? 1 }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{{ __('Weight Applied') }}</div>
+                                <div class="text-lg text-gray-700">× {{ $evaluation->criteria->weight }}%</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4 pt-4 border-t border-gray-200">
+                            <div class="text-sm text-gray-500">{{ __('Final Weighted Score') }}</div>
+                            <div class="text-2xl font-bold text-primary-600">{{ round($evaluation->weighted_score, 4) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        @if($evaluation->notes)
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-sticky-note text-primary-500"></i>{{ __('Notes') }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-gray-700 whitespace-pre-wrap">{{ $evaluation->notes }}</p>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-bolt text-warning-500"></i>{{ __('Quick Actions') }}
+                </h6>
+            </div>
+            <div class="card-body space-y-3">
+                <x-ui.button href="{{ route('evaluations.edit', $evaluation->id) }}" variant="outline-warning" size="sm" icon="fas fa-edit" class="w-full justify-start">
+                    {{ __('Edit Evaluation') }}
+                </x-ui.button>
+                <x-ui.button href="{{ route('results.details', ['employee' => $evaluation->employee->id, 'period' => $evaluation->evaluation_period]) }}" variant="outline-primary" size="sm" icon="fas fa-chart-bar" class="w-full justify-start">
+                    {{ __('View Results') }}
+                </x-ui.button>
+                <x-ui.button onclick="exportEvaluation()" variant="outline-success" size="sm" icon="fas fa-download" class="w-full justify-start">
+                    {{ __('Export Details') }}
+                </x-ui.button>
+                <div class="pt-2 border-t border-gray-200">
+                    <x-ui.button onclick="confirmDelete()" variant="outline-danger" size="sm" icon="fas fa-trash" class="w-full justify-start">
+                        {{ __('Delete Evaluation') }}
+                    </x-ui.button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluation Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="flex items-center gap-2 font-semibold text-gray-900">
+                    <i class="fas fa-chart-pie text-info-500"></i>{{ __('Statistics') }}
+                </h6>
+            </div>
+            <div class="card-body space-y-4 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('Criteria Weight') }}</span>
+                    <span class="font-semibold text-gray-900">{{ $evaluation->criteria->weight }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('Score Rank') }}</span>
+                    <span class="font-semibold text-gray-900">#{{ $evaluation->rank ?? 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('Created') }}</span>
+                    <span class="text-gray-900">{{ $evaluation->created_at->format('M d, Y') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">{{ __('Last Updated') }}</span>
+                    <span class="text-gray-900">{{ $evaluation->updated_at->diffForHumans() }}</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
-@endif
-
-<!-- No Related Evaluations Message -->
-@if($relatedEvaluations->count() <= 1)
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No Other Evaluations</h5>
-                <p class="text-muted mb-3">
-                    This is the only evaluation for {{ $evaluation->employee->name }} in period {{ $evaluation->evaluation_period }}.
-                </p>
-                <a href="{{ route('evaluations.create') }}?employee_id={{ $evaluation->employee_id }}&evaluation_period={{ $evaluation->evaluation_period }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>
-                    Add More Evaluations
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
 @endsection
 
-@push('styles')
-<style>
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    border: none;
+@push('scripts')
+<script>
+function confirmDelete() {
+    Swal.fire({
+        title: '{{ __("Delete Evaluation") }}',
+        text: '{{ __("Are you sure you want to delete this evaluation? This action cannot be undone.") }}',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '{{ __("Yes, Delete") }}',
+        cancelButtonText: '{{ __("Cancel") }}',
+        confirmButtonColor: '#dc2626'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("evaluations.destroy", $evaluation->id) }}';
+            form.innerHTML = `
+                @csrf
+                @method('DELETE')
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 }
 
-.card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
+function exportEvaluation() {
+    window.open('{{ route("evaluations.export", $evaluation->id) }}', '_blank');
 }
-
-.progress {
-    background-color: #e9ecef;
-    border-radius: 0.375rem;
-}
-
-.progress-bar {
-    border-radius: 0.375rem;
-    font-weight: bold;
-}
-
-.badge {
-    font-size: 0.875rem;
-}
-
-.btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-.fa-3x {
-    font-size: 3em;
-}
-</style>
+</script>
 @endpush

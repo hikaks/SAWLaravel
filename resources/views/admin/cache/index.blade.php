@@ -21,9 +21,11 @@
                         <div>
                             <h4 class="mb-1">
                                 Cache Status: 
-                                <span class="badge bg-{{ $stats['status'] === 'connected' ? 'success' : 'danger' }} fs-6">
+                                <x-ui.badge 
+                                    variant="{{ $stats['status'] === 'connected' ? 'success' : 'danger' }}" 
+                                    size="lg">
                                     {{ ucfirst($stats['status']) }}
-                                </span>
+                                </x-ui.badge>
                             </h4>
                             <p class="text-muted mb-0">
                                 Driver: <strong>{{ ucfirst($stats['driver']) }}</strong> | 
@@ -31,16 +33,28 @@
                             </p>
                         </div>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-info" onclick="refreshCacheStats()">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                        <button class="btn btn-warning" onclick="clearCache()">
-                            <i class="fas fa-broom me-1"></i>Clear All
-                        </button>
-                        <button class="btn btn-primary" onclick="warmupCache()">
-                            <i class="fas fa-fire me-1"></i>Warmup
-                        </button>
+                    <div class="flex gap-2">
+                        <x-ui.button 
+                            variant="outline-info" 
+                            icon="fas fa-sync-alt"
+                            onclick="refreshCacheStats()"
+                            id="refreshBtn">
+                            Refresh
+                        </x-ui.button>
+                        <x-ui.button 
+                            variant="warning" 
+                            icon="fas fa-broom"
+                            onclick="clearCache()"
+                            id="clearBtn">
+                            Clear All
+                        </x-ui.button>
+                        <x-ui.button 
+                            variant="primary" 
+                            icon="fas fa-fire"
+                            onclick="warmupCache()"
+                            id="warmupBtn">
+                            Warmup
+                        </x-ui.button>
                     </div>
                 </div>
             </div>
