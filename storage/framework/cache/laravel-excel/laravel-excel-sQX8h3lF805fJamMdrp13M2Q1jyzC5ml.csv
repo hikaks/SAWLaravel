@@ -1,0 +1,4 @@
+employee_code,criteria_name,score,evaluation_period
+HJ5518,Performance,85,2025
+HJ5518,Performance,90,2025-13
+HJ5518,Performance,75,invalid-date

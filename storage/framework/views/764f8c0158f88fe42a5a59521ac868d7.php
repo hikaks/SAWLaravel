@@ -302,8 +302,10 @@
 let usersTable;
 
 $(document).ready(function() {
-    // Initialize DataTable
-    usersTable = $('#usersTable').DataTable({
+    // Wait for DataTables to be loaded
+    $(document).on('datatables-ready', function() {
+        // Initialize DataTable
+        usersTable = $('#usersTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
@@ -339,6 +341,7 @@ $(document).ready(function() {
         drawCallback: function() {
             $('[data-bs-toggle="tooltip"]').tooltip();
         }
+    });
     });
 
     // Select all checkbox functionality

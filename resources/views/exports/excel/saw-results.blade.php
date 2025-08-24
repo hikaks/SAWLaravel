@@ -158,9 +158,9 @@
             </tr>
             <tr>
                 <td class="label">Rata-rata Skor</td>
-                <td>{{ number_format($results->avg('total_score') * 100, 2) }}%</td>
+                <td>{{ number_format($results->avg('total_score'), 2) }}%</td>
                 <td class="label">Skor Tertinggi</td>
-                <td>{{ number_format($results->max('total_score') * 100, 2) }}%</td>
+                <td>{{ number_format($results->max('total_score'), 2) }}%</td>
             </tr>
         </table>
     </div>

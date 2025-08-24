@@ -428,8 +428,10 @@
 let criteriasTable;
 
 $(document).ready(function() {
-    // Initialize DataTable
-    criteriasTable = $('#criteriasTable').DataTable({
+    // Wait for DataTables to be loaded
+    $(document).on('datatables-ready', function() {
+        // Initialize DataTable
+        criteriasTable = $('#criteriasTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
@@ -509,6 +511,7 @@ $(document).ready(function() {
             loadCriteriaInfo();
         });
     }
+    });
 });
 
 // Chart functions removed - table functionality restored

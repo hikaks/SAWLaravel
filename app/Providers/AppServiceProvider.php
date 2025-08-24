@@ -28,7 +28,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AdvancedAnalysisService::class, function ($app) {
             return new AdvancedAnalysisService(
                 $app->make(SAWCalculationService::class),
-                $app->make(CacheService::class)
+                $app->make(CacheService::class),
+                $app->make(\App\Services\AnalysisHistoryService::class)
             );
         });
     }

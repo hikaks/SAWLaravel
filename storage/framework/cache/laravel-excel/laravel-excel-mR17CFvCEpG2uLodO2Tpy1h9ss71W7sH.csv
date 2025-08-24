@@ -1,0 +1,3 @@
+employee_code,criteria_name,score,evaluation_period
+INVALID_EMP,Invalid Criteria,150,invalid-date
+EMP001,Communication Skills,-10,2025-08

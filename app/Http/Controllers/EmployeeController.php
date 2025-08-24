@@ -401,6 +401,9 @@ class EmployeeController extends Controller
     {
         $format = $request->get('format', 'pdf');
 
+        // Get current filters from the request
+        $filters = $request->only(['department', 'position', 'evaluation_status']);
+
         switch ($format) {
             case 'excel':
                 return $this->exportExcel($request);
@@ -427,14 +430,25 @@ class EmployeeController extends Controller
                 $query->where('position', $request->position);
             }
 
+            if ($request->filled('evaluation_status')) {
+                if ($request->evaluation_status === 'evaluated') {
+                    $query->whereHas('evaluationResults');
+                } elseif ($request->evaluation_status === 'not_evaluated') {
+                    $query->whereDoesntHave('evaluationResults');
+                }
+            }
+
             $employees = $query->orderBy('employee_code')->get();
 
             $filters = [];
             if ($request->filled('department')) {
-                $filters[] = 'Department: ' . $request->department;
+                $filters[] = 'Departemen: ' . $request->department;
             }
             if ($request->filled('position')) {
                 $filters[] = 'Posisi: ' . $request->position;
+            }
+            if ($request->filled('evaluation_status')) {
+                $filters[] = 'Status Evaluasi: ' . ($request->evaluation_status === 'evaluated' ? 'Sudah Dievaluasi' : 'Belum Dievaluasi');
             }
 
             $filtersText = empty($filters) ? 'Semua Data' : implode(', ', $filters);
@@ -448,24 +462,37 @@ class EmployeeController extends Controller
 
             return $pdf->download($filename);
         } catch (\Exception $e) {
+            Log::error('Employee PDF export failed: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Gagal mengexport PDF: ' . $e->getMessage());
         }
     }
 
-        /**
+    /**
      * Export employees to Excel
      */
     public function exportExcel(Request $request)
     {
         try {
             $query = Employee::query();
-            
+
             // Apply filters
             if ($request->filled('department')) {
                 $query->where('department', $request->department);
             }
-            
+
+            if ($request->filled('position')) {
+                $query->where('position', $request->position);
+            }
+
+            if ($request->filled('evaluation_status')) {
+                if ($request->evaluation_status === 'evaluated') {
+                    $query->whereHas('evaluationResults');
+                } elseif ($request->evaluation_status === 'not_evaluated') {
+                    $query->whereDoesntHave('evaluationResults');
+                }
+            }
+
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
@@ -474,17 +501,30 @@ class EmployeeController extends Controller
                       ->orWhere('email', 'like', "%{$search}%");
                 });
             }
-            
-            $employees = $query->orderBy('name')->get();
-            
-            $filename = 'employees-export-' . date('Y-m-d-His') . '.xlsx';
-            
-            return Excel::download(new EmployeesExport($employees), $filename);
-            
+
+            $employees = $query->orderBy('employee_code')->get();
+
+            // Build filters text
+            $filters = [];
+            if ($request->filled('department')) {
+                $filters[] = 'Departemen: ' . $request->department;
+            }
+            if ($request->filled('position')) {
+                $filters[] = 'Posisi: ' . $request->position;
+            }
+            if ($request->filled('evaluation_status')) {
+                $filters[] = 'Status Evaluasi: ' . ($request->evaluation_status === 'evaluated' ? 'Sudah Dievaluasi' : 'Belum Dievaluasi');
+            }
+            $filtersText = empty($filters) ? 'Semua Data' : implode(', ', $filters);
+
+            $filename = 'daftar-karyawan-' . date('Y-m-d-His') . '.xlsx';
+
+            return Excel::download(new EmployeesExport($employees, $filtersText), $filename);
+
         } catch (\Exception $e) {
             Log::error('Employee Excel export failed: ' . $e->getMessage());
             return redirect()->back()
-                ->with('error', 'Failed to export Excel: ' . $e->getMessage());
+                ->with('error', 'Gagal export Excel: ' . $e->getMessage());
         }
     }
 
@@ -496,7 +536,7 @@ class EmployeeController extends Controller
         try {
             $filename = 'employee_import_template_' . date('Y-m-d') . '.xlsx';
             return Excel::download(new EmployeeTemplateExport(), $filename);
-            
+
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Failed to download template: ' . $e->getMessage());
@@ -527,7 +567,7 @@ class EmployeeController extends Controller
             $this->cacheService->invalidateEmployeeData();
 
             $message = "Import completed! Imported: {$stats['imported']}, Skipped: {$stats['skipped']}";
-            
+
             if (!empty($errors)) {
                 $message .= ", Errors: {$stats['errors']}";
                 return redirect()->back()
@@ -540,7 +580,7 @@ class EmployeeController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()->back()
                 ->with('error', 'Import failed: ' . $e->getMessage());
         }

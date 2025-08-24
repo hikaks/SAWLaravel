@@ -203,6 +203,13 @@
     <div class="period-info">
         <h2>Periode Evaluasi: {{ $period }}</h2>
         <p style="margin: 5px 0 0 0;">{{ $results->count() }} Karyawan Dinilai</p>
+        @if($period === 'all-periods')
+            @php
+                $uniquePeriods = $results->pluck('evaluation_period')->unique();
+                $totalPeriods = $uniquePeriods->count();
+            @endphp
+            <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">Mencakup {{ $totalPeriods }} Periode Evaluasi</p>
+        @endif
     </div>
 
     <div class="meta-info">
@@ -215,7 +222,13 @@
             </tr>
             <tr>
                 <td><strong>Periode Evaluasi:</strong></td>
-                <td>{{ $period }}</td>
+                <td>
+                    @if($period === 'all-periods')
+                        Semua Periode ({{ $uniquePeriods->count() }} periode)
+                    @else
+                        {{ $period }}
+                    @endif
+                </td>
                 <td><strong>Tanggal Export:</strong></td>
                 <td>{{ date('d F Y H:i:s') }}</td>
             </tr>
@@ -230,39 +243,39 @@
     <div class="meta-info" style="background-color: #e3f2fd; border: 1px solid #2196f3;">
         <h3 style="margin: 0 0 10px 0; color: #1976d2; text-align: center;">📊 Statistik Performance</h3>
         <table style="margin-bottom: 0;">
-            @php
-                $excellent = $results->where('score_percentage', '>=', 90);
-                $good = $results->where('score_percentage', '>=', 80)->where('score_percentage', '<', 90);
-                $average = $results->where('score_percentage', '>=', 70)->where('score_percentage', '<', 80);
-                $poor = $results->where('score_percentage', '<', 70);
-                $total = $results->count();
-            @endphp
+                    @php
+            $excellent = $results->where('total_score', '>=', 0.90);
+            $good = $results->where('total_score', '>=', 0.80)->where('total_score', '<', 0.90);
+            $average = $results->where('total_score', '>=', 0.70)->where('total_score', '<', 0.80);
+            $poor = $results->where('total_score', '<', 0.70);
+            $total = $results->count();
+        @endphp
             <tr>
                 <td><strong>Outstanding (90%+):</strong></td>
                 <td>{{ $excellent->count() }} orang ({{ $total > 0 ? number_format(($excellent->count() / $total) * 100, 1) : 0 }}%)</td>
                 <td><strong>Rata-rata Skor:</strong></td>
-                <td>{{ number_format($results->avg('score_percentage'), 1) }}%</td>
+                <td>{{ number_format($results->avg('total_score') * 100, 1) }}%</td>
             </tr>
             <tr>
                 <td><strong>Good (80-89%):</strong></td>
                 <td>{{ $good->count() }} orang ({{ $total > 0 ? number_format(($good->count() / $total) * 100, 1) : 0 }}%)</td>
                 <td><strong>Skor Tertinggi:</strong></td>
-                <td>{{ number_format($results->max('score_percentage'), 1) }}%</td>
+                <td>{{ number_format($results->max('total_score') * 100, 1) }}%</td>
             </tr>
             <tr>
                 <td><strong>Average (70-79%):</strong></td>
                 <td>{{ $average->count() }} orang ({{ $total > 0 ? number_format(($average->count() / $total) * 100, 1) : 0 }}%)</td>
                 <td><strong>Skor Terendah:</strong></td>
-                <td>{{ number_format($results->min('score_percentage'), 1) }}%</td>
+                <td>{{ number_format($results->min('total_score') * 100, 1) }}%</td>
             </tr>
             <tr>
                 <td><strong>Below Average (<70%):</strong></td>
                 <td>{{ $poor->count() }} orang ({{ $total > 0 ? number_format(($poor->count() / $total) * 100, 1) : 0 }}%)</td>
                 <td><strong>Standar Deviasi:</strong></td>
                 @php
-                    $mean = $results->avg('score_percentage');
+                    $mean = $results->avg('total_score') * 100;
                     $variance = $results->reduce(function($carry, $item) use ($mean) {
-                        return $carry + pow($item->score_percentage - $mean, 2);
+                        return $carry + pow(($item->total_score * 100) - $mean, 2);
                     }, 0) / $total;
                     $stdDev = sqrt($variance);
                 @endphp
@@ -280,7 +293,7 @@
                 <div class="rank-badge rank-{{ $index + 1 }}">{{ $result->ranking }}</div>
                 <div style="margin-top: 8px; font-weight: bold;">{{ $result->employee->name }}</div>
                 <div style="font-size: 10px; color: #666;">{{ $result->employee->department }}</div>
-                <div style="font-weight: bold; color: #198754;">{{ number_format($result->score_percentage, 1) }}%</div>
+                <div style="font-weight: bold; color: #198754;">{{ number_format($result->total_score * 100, 1) }}%</div>
                 <div style="font-size: 9px; color: #999;">{{ $result->employee->position }}</div>
             </div>
             @endforeach
@@ -296,7 +309,12 @@
                 <th style="width: 22%">Nama Karyawan</th>
                 <th style="width: 15%">Department</th>
                 <th style="width: 15%">Posisi</th>
-                <th style="width: 10%">Total Skor</th>
+                @if($period === 'all-periods')
+                    <th style="width: 10%">Periode</th>
+                    <th style="width: 8%">Total Skor</th>
+                @else
+                    <th style="width: 10%">Total Skor</th>
+                @endif
                 <th style="width: 18%">Skor Visual</th>
             </tr>
         </thead>
@@ -312,31 +330,34 @@
                 <td>{{ $result->employee->name }}</td>
                 <td>{{ $result->employee->department }}</td>
                 <td style="font-size: 10px;">{{ $result->employee->position }}</td>
+                @if($period === 'all-periods')
+                    <td style="text-align: center; font-size: 10px;">{{ $result->evaluation_period }}</td>
+                @endif
                 <td style="text-align: center; font-weight: bold">
-                    {{ number_format($result->score_percentage, 2) }}%
+                    {{ number_format($result->total_score * 100, 2) }}%
                     <br>
                     <span class="performance-category category-{{
-                        $result->score_percentage >= 90 ? 'excellent' :
-                        ($result->score_percentage >= 80 ? 'good' :
-                        ($result->score_percentage >= 70 ? 'average' : 'poor'))
+                        ($result->total_score * 100) >= 90 ? 'excellent' :
+                        (($result->total_score * 100) >= 80 ? 'good' :
+                        (($result->total_score * 100) >= 70 ? 'average' : 'poor'))
                     }}">
                         {{
-                            $result->score_percentage >= 90 ? 'Outstanding' :
-                            ($result->score_percentage >= 80 ? 'Excellent' :
-                            ($result->score_percentage >= 70 ? 'Good' : 'Poor'))
+                            ($result->total_score * 100) >= 90 ? 'Outstanding' :
+                            (($result->total_score * 100) >= 80 ? 'Excellent' :
+                            (($result->total_score * 100) >= 70 ? 'Good' : 'Poor'))
                         }}
                     </span>
                 </td>
                 <td>
                     <div class="score-bar">
                         <div class="score-fill" style="
-                            width: {{ $result->score_percentage }}%;
+                            width: {{ ($result->total_score * 100) }}%;
                             background-color: {{
-                                $result->score_percentage >= 90 ? '#28a745' :
-                                ($result->score_percentage >= 80 ? '#17a2b8' :
-                                ($result->score_percentage >= 70 ? '#ffc107' : '#dc3545'))
+                                ($result->total_score * 100) >= 90 ? '#28a745' :
+                                (($result->total_score * 100) >= 80 ? '#17a2b8' :
+                                (($result->total_score * 100) >= 70 ? '#ffc107' : '#dc3545'))
                             }}">
-                            <div class="score-text">{{ number_format($result->score_percentage, 1) }}%</div>
+                            <div class="score-text">{{ number_format($result->total_score * 100, 1) }}%</div>
                         </div>
                     </div>
                 </td>

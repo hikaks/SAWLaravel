@@ -85,7 +85,7 @@ class EvaluationResultController extends Controller
                     return '<span class="badge bg-'.$class.'">#'.$result->ranking.'</span>';
                 })
                 ->addColumn('score_percentage', function($result) {
-                    return round($result->total_score * 100, 2) . '%';
+                    return round($result->total_score * 100, 2);
                 })
                 ->addColumn('action', function($result) {
                     $detailsUrl = route('results.details', ['employee' => $result->employee->id, 'period' => $result->evaluation_period]);
@@ -125,10 +125,10 @@ class EvaluationResultController extends Controller
         $periods = $this->cacheService->getEvaluationPeriods(function() {
             $resultPeriods = EvaluationResult::distinct('evaluation_period')
                 ->pluck('evaluation_period');
-            
+
             $evaluationPeriods = Evaluation::distinct('evaluation_period')
                 ->pluck('evaluation_period');
-            
+
             // Merge and get unique periods, sorted descending
             return $resultPeriods->merge($evaluationPeriods)
                 ->unique()
@@ -182,7 +182,7 @@ class EvaluationResultController extends Controller
     {
         $type = $request->get('type');
         $period = $request->get('period');
-        
+
         // Handle null or empty period
         if (empty($period)) {
             $period = 'all';
@@ -280,10 +280,22 @@ class EvaluationResultController extends Controller
                 ], 400);
             }
 
-            $results = EvaluationResult::with('employee')
-                ->forPeriod($period)
-                ->orderBy('ranking')
-                ->get();
+            // Handle "all periods" case
+            if ($period === 'all') {
+                Log::info('Processing all periods PDF export');
+                $results = EvaluationResult::with('employee')
+                    ->orderBy('evaluation_period', 'desc')
+                    ->orderBy('ranking')
+                    ->get();
+
+                $period = 'all-periods';
+            } else {
+                Log::info('Processing single period PDF export: ' . $period);
+                $results = EvaluationResult::with('employee')
+                    ->where('evaluation_period', $period)
+                    ->orderBy('ranking')
+                    ->get();
+            }
 
             if ($results->isEmpty()) {
                 return response()->json([
@@ -410,10 +422,22 @@ class EvaluationResultController extends Controller
                 return back()->with('error', 'Periode evaluasi wajib dipilih untuk export.');
             }
 
-            $results = EvaluationResult::with('employee')
-                ->forPeriod($period)
-                ->orderBy('ranking')
-                ->get();
+            // Handle "all periods" case
+            if ($period === 'all') {
+                Log::info('Processing all periods simple PDF export');
+                $results = EvaluationResult::with('employee')
+                    ->orderBy('evaluation_period', 'desc')
+                    ->orderBy('ranking')
+                    ->get();
+
+                $period = 'all-periods';
+            } else {
+                Log::info('Processing single period simple PDF export: ' . $period);
+                $results = EvaluationResult::with('employee')
+                    ->where('evaluation_period', $period)
+                    ->orderBy('ranking')
+                    ->get();
+            }
 
             if ($results->isEmpty()) {
                 return back()->with('error', "Tidak ada hasil SAW untuk periode {$period}.");
@@ -448,28 +472,49 @@ class EvaluationResultController extends Controller
         try {
             $period = $request->get('period');
 
+            Log::info('Excel export requested for period: ' . $period);
+
             if (!$period) {
+                Log::warning('Excel export failed: No period specified');
                 return redirect()->back()
                     ->with('error', 'Periode evaluasi wajib dipilih untuk export Excel.');
             }
 
-            $results = EvaluationResult::with('employee')
-                ->forPeriod($period)
-                ->orderBy('ranking')
-                ->get();
+            // Handle "all periods" case
+            if ($period === 'all') {
+                Log::info('Processing all periods export');
+                $results = EvaluationResult::with('employee')
+                    ->orderBy('evaluation_period', 'desc')
+                    ->orderBy('ranking')
+                    ->get();
+
+                $period = 'all-periods';
+            } else {
+                Log::info('Processing single period export: ' . $period);
+                $results = EvaluationResult::with('employee')
+                    ->where('evaluation_period', $period)
+                    ->orderBy('ranking')
+                    ->get();
+            }
+
+            Log::info('Found ' . $results->count() . ' results for export');
 
             if ($results->isEmpty()) {
+                Log::warning('Excel export failed: No results found for period ' . $period);
                 return redirect()->back()
                     ->with('error', "Tidak ada hasil SAW untuk periode {$period}.");
             }
 
             $criterias = Criteria::orderBy('weight', 'desc')->get();
-            
+            Log::info('Found ' . $criterias->count() . ' criteria for export');
+
             $filename = "hasil-ranking-saw-{$period}-" . date('Y-m-d-His') . '.xlsx';
+            Log::info('Generating Excel file: ' . $filename);
 
             return Excel::download(new SawResultsExport($results, $period, $criterias), $filename);
         } catch (\Exception $e) {
             Log::error('SAW Results Excel export failed: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()
                 ->with('error', 'Gagal mengexport Excel: ' . $e->getMessage());
         }

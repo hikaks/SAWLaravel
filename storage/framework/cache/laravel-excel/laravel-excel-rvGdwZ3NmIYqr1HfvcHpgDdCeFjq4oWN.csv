@@ -1,0 +1,5 @@
+name,weight,type
+Performance,30,benefit
+Attendance,25,benefit
+Discipline,25,benefit
+Tardiness,20,cost

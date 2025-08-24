@@ -669,7 +669,7 @@ function updateStats() {
     // Calculate average score
     if (totalEmployees > 0) {
         const totalScore = data.toArray().reduce((sum, row) => {
-            const percentage = parseFloat(row.score_percentage.replace('%', ''));
+            const percentage = parseFloat(row.score_percentage);
             return sum + percentage;
         }, 0);
         const avgScore = Math.round(totalScore / totalEmployees);
@@ -793,7 +793,7 @@ function generateResults() {
     // Prepare confirmation message based on period selection
     const isAllPeriods = period === 'all';
     const confirmTitle = isAllPeriods ? '{{ __("Generate SAW Results for All Periods") }}' : '{{ __("Generate SAW Results") }}';
-    const confirmText = isAllPeriods 
+    const confirmText = isAllPeriods
         ? '{{ __("Generate SAW calculation results for ALL available periods? This may take longer to complete.") }}'
         : `{{ __("Generate SAW calculation results for period") }} ${period}?`;
 
@@ -833,7 +833,7 @@ function generateResults() {
     }).then((result) => {
         if (result.isConfirmed && result.value) {
             const response = result.value;
-            
+
             // Handle different response types for single period vs all periods
             if (response.periods_processed !== undefined) {
                 // All periods response
@@ -844,7 +844,7 @@ function generateResults() {
                             <li><i class="fas fa-check-circle text-success me-2"></i><strong>{{ __("Periods Processed") }}:</strong> ${response.periods_processed}/${response.total_periods}</li>
                         </ul>
                 `;
-                
+
                 if (response.errors && Object.keys(response.errors).length > 0) {
                     detailsHtml += `<div class="alert alert-warning mt-2"><small><strong>{{ __("Periods with errors") }}:</strong><br>`;
                     Object.keys(response.errors).forEach(period => {
@@ -852,9 +852,9 @@ function generateResults() {
                     });
                     detailsHtml += `</small></div>`;
                 }
-                
+
                 detailsHtml += `</div>`;
-                
+
                 Swal.fire({
                     icon: response.success ? 'success' : 'warning',
                     title: response.success ? '{{ __("All Periods Processed") }}' : '{{ __("Partially Completed") }}',
@@ -872,7 +872,7 @@ function generateResults() {
                     confirmButtonColor: '#198754'
                 });
             }
-            
+
             // Refresh the results table and charts
             @if($periods->count() > 0)
             resultsTable.ajax.reload();
@@ -1036,7 +1036,7 @@ function performExport(format, period) {
         if (format === 'pdf' && !contentType.includes('application/pdf')) {
             throw new Error('Invalid PDF response received');
         }
-        if (format === 'excel' && !contentType.includes('application/vnd.ms-excel')) {
+        if (format === 'excel' && !contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') && !contentType.includes('application/vnd.ms-excel')) {
             throw new Error('Invalid Excel response received');
         }
 
@@ -1047,7 +1047,7 @@ function performExport(format, period) {
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.download = `hasil-ranking-saw-${period}-${new Date().toISOString().slice(0,19).replace(/[:]/g, '-')}.${format === 'pdf' ? 'pdf' : 'xls'}`;
+        link.download = `hasil-ranking-saw-${period}-${new Date().toISOString().slice(0,19).replace(/[:]/g, '-')}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
 
         // Trigger download
         document.body.appendChild(link);

@@ -714,6 +714,9 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 
+    <!-- Notification System -->
+    @vite(['resources/js/notifications.js'])
+
     <!-- Global CSRF Token Setup for AJAX -->
     <script>
         // Setup CSRF token for all AJAX requests

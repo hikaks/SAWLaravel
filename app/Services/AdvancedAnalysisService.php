@@ -14,11 +14,38 @@ class AdvancedAnalysisService
 {
     protected $sawService;
     protected $cacheService;
+    protected $historyService;
 
-    public function __construct(SAWCalculationService $sawService, CacheService $cacheService)
+    public function __construct(SAWCalculationService $sawService, CacheService $cacheService, AnalysisHistoryService $historyService)
     {
         $this->sawService = $sawService;
         $this->cacheService = $cacheService;
+        $this->historyService = $historyService;
+    }
+
+    /**
+     * Safely record analysis history with fallback
+     */
+    private function recordAnalysisHistory(string $type, array $parameters, array $resultsSummary, int $executionTime, string $status = 'completed', ?string $errorMessage = null): void
+    {
+        try {
+            // Check if user is authenticated
+            if (auth()->check()) {
+                $this->historyService->recordAnalysis($type, $parameters, $resultsSummary, $executionTime, $status, $errorMessage);
+            } else {
+                // If no user authenticated, try to use first available user
+                $user = \App\Models\User::first();
+                if ($user) {
+                    auth()->login($user);
+                    $this->historyService->recordAnalysis($type, $parameters, $resultsSummary, $executionTime, $status, $errorMessage);
+                    auth()->logout(); // Logout after recording
+                } else {
+                    \Log::warning("Cannot record analysis history: No authenticated user and no users in database");
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Failed to record analysis history: " . $e->getMessage());
+        }
     }
 
     /**
@@ -26,6 +53,8 @@ class AdvancedAnalysisService
      */
     public function sensitivityAnalysis(string $evaluationPeriod, array $weightChanges = []): array
     {
+        $startTime = microtime(true);
+
         try {
             // Get original criteria weights
             $originalCriteria = Criteria::all();
@@ -68,14 +97,50 @@ class AdvancedAnalysisService
                 ];
             }
 
-            return [
+            $results = [
                 'original_results' => $originalResults,
                 'original_weights' => $originalWeights,
                 'sensitivity_scenarios' => $sensitivityData,
                 'summary' => $this->generateSensitivitySummary($sensitivityData)
             ];
 
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->recordAnalysisHistory(
+                'sensitivity',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenarios_count' => count($weightChanges),
+                    'weight_changes' => $weightChanges
+                ],
+                [
+                    'scenarios_analyzed' => count($weightChanges),
+                    'total_employees' => $originalResults->count(),
+                    'best_performer' => $originalResults->first()->employee->name ?? 'N/A',
+                    'worst_performer' => $originalResults->last()->employee->name ?? 'N/A'
+                ],
+                $executionTime
+            );
+
+            return $results;
+
         } catch (\Exception $e) {
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record failed analysis
+            $this->recordAnalysisHistory(
+                'sensitivity',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'weight_changes' => $weightChanges
+                ],
+                [],
+                $executionTime,
+                'failed',
+                $e->getMessage()
+            );
+
             Log::error("Sensitivity analysis failed: " . $e->getMessage());
             throw $e;
         }
@@ -86,6 +151,8 @@ class AdvancedAnalysisService
      */
     public function whatIfAnalysis(string $evaluationPeriod, array $scenarios): array
     {
+        $startTime = microtime(true);
+
         try {
             // Validate input parameters
             if (empty($evaluationPeriod)) {
@@ -135,7 +202,7 @@ class AdvancedAnalysisService
                                 $evaluationPeriod,
                                 $scenario['score_changes']
                             );
-                            
+
                             $scenarioResults['score_impact'] = $this->calculateSAWWithModifiedScores(
                                 $evaluationPeriod,
                                 $scoreChanges
@@ -182,11 +249,45 @@ class AdvancedAnalysisService
                 $results['_has_errors'] = false;
             }
 
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->recordAnalysisHistory(
+                'what-if',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenarios_count' => count($scenarios),
+                    'scenario_types' => array_keys($scenarios)
+                ],
+                [
+                    'scenarios_analyzed' => count($scenarios),
+                    'total_employees' => count($results['rankings'] ?? []),
+                    'best_performer' => $results['best_performer'] ?? 'N/A',
+                    'improvement_potential' => $results['improvement_potential'] ?? 'N/A'
+                ],
+                $executionTime
+            );
+
             return $results;
 
         } catch (\Exception $e) {
-            \Log::error('What-if analysis failed: ' . $e->getMessage());
-            throw new \Exception('What-if analysis failed: ' . $e->getMessage());
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record failed analysis
+            $this->recordAnalysisHistory(
+                'what-if',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenarios' => $scenarios
+                ],
+                [],
+                $executionTime,
+                'failed',
+                $e->getMessage()
+            );
+
+            Log::error("What-if analysis failed: " . $e->getMessage());
+            throw $e;
         }
     }
 
@@ -195,6 +296,7 @@ class AdvancedAnalysisService
      */
     public function advancedStatisticalAnalysis(array $periods): array
     {
+        $startTime = microtime(true);
         $statistics = [];
 
         // Growth rate analysis
@@ -212,6 +314,25 @@ class AdvancedAnalysisService
         // Statistical distribution analysis
         $statistics['distribution_analysis'] = $this->calculateDistributionAnalysis($periods);
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'advanced_statistical',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods),
+                    'analysis_type' => 'statistical'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record advanced statistical analysis history: " . $e->getMessage());
+        }
+
         return $statistics;
     }
 
@@ -220,6 +341,7 @@ class AdvancedAnalysisService
      */
     public function multiPeriodComparison(array $periods, string $comparisonType = 'all', ?int $employeeId = null, ?string $departmentId = null): array
     {
+        $startTime = microtime(true);
         $query = EvaluationResult::with('employee')
             ->whereIn('evaluation_period', $periods);
 
@@ -231,11 +353,11 @@ class AdvancedAnalysisService
                 }
                 $query->where('employee_id', $employeeId);
                 break;
-            
+
             case 'department':
                 // For department comparison, we'll group by department later
                 break;
-            
+
             case 'all':
             default:
                 // No additional filtering needed for all employees
@@ -249,28 +371,51 @@ class AdvancedAnalysisService
 
         // Handle department comparison grouping
         if ($comparisonType === 'department') {
-            return $this->handleDepartmentComparison($periods, $results, $departmentId);
+            $comparison = $this->handleDepartmentComparison($periods, $results, $departmentId);
+        } else {
+            $comparison = [];
+            foreach ($periods as $period) {
+                $periodResults = $results->get($period, collect());
+
+                $comparison[$period] = [
+                    'results' => $periodResults,
+                    'statistics' => [
+                        'avg_score' => $periodResults->avg('total_score'),
+                        'max_score' => $periodResults->max('total_score'),
+                        'min_score' => $periodResults->min('total_score'),
+                        'std_deviation' => $this->calculateStandardDeviation($periodResults->pluck('total_score')),
+                        'total_employees' => $periodResults->count()
+                    ]
+                ];
+            }
+
+            // Calculate period-to-period changes
+            $comparison['period_changes'] = $this->calculatePeriodChanges($comparison);
         }
 
-        $comparison = [];
+        $executionTime = round((microtime(true) - $startTime) * 1000);
 
-        foreach ($periods as $period) {
-            $periodResults = $results->get($period, collect());
-
-            $comparison[$period] = [
-                'results' => $periodResults,
-                'statistics' => [
-                    'avg_score' => $periodResults->avg('total_score'),
-                    'max_score' => $periodResults->max('total_score'),
-                    'min_score' => $periodResults->min('total_score'),
-                    'std_deviation' => $this->calculateStandardDeviation($periodResults->pluck('total_score')),
-                    'total_employees' => $periodResults->count()
-                ]
-            ];
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'multi_period_comparison',
+                [
+                    'periods' => $periods,
+                    'comparison_type' => $comparisonType,
+                    'employee_id' => $employeeId,
+                    'department_id' => $departmentId
+                ],
+                [
+                    'total_periods' => count($periods),
+                    'comparison_type' => $comparisonType,
+                    'employee_count' => $employeeId ? 1 : null,
+                    'department_count' => $departmentId ? 1 : null
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record multi-period comparison history: " . $e->getMessage());
         }
-
-        // Calculate period-to-period changes
-        $comparison['period_changes'] = $this->calculatePeriodChanges($comparison);
 
         return $comparison;
     }
@@ -280,21 +425,22 @@ class AdvancedAnalysisService
      */
     private function handleDepartmentComparison(array $periods, $results, ?string $departmentId = null): array
     {
+        $startTime = microtime(true);
         $comparison = [];
 
         foreach ($periods as $period) {
             $periodResults = $results->get($period, collect());
-            
+
             // Filter by specific department if provided
             if ($departmentId) {
                 $periodResults = $periodResults->filter(function($result) use ($departmentId) {
                     return $result->employee && $result->employee->department == $departmentId;
                 });
             }
-            
+
             // Group by department
             $departmentGroups = $periodResults->groupBy('employee.department');
-            
+
             $comparison[$period] = [
                 'departments' => [],
                 'statistics' => [
@@ -306,7 +452,7 @@ class AdvancedAnalysisService
                     'total_departments' => $departmentGroups->count()
                 ]
             ];
-            
+
             foreach ($departmentGroups as $department => $deptResults) {
                 $comparison[$period]['departments'][$department] = [
                     'results' => $deptResults,
@@ -322,7 +468,27 @@ class AdvancedAnalysisService
         }
 
         // Calculate department-wise period changes
-        $comparison['department_changes'] = $this->calculateDepartmentChanges($comparison);
+        $comparison['department_changes'] = $this->calculateDepartmentChanges($comparison, $departmentId);
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'department_comparison',
+                [
+                    'periods' => $periods,
+                    'department_id' => $departmentId
+                ],
+                [
+                    'total_periods' => count($periods),
+                    'department_count' => $departmentId ? 1 : null
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record department comparison history: " . $e->getMessage());
+        }
 
         return $comparison;
     }
@@ -330,22 +496,22 @@ class AdvancedAnalysisService
     /**
      * Calculate department changes across periods
      */
-    private function calculateDepartmentChanges(array $comparison): array
+    private function calculateDepartmentChanges(array $comparison, ?string $departmentId = null): array
     {
         $changes = [];
         $periods = array_keys($comparison);
-        
+
         // Remove non-period keys
         $periods = array_filter($periods, function($key) {
             return $key !== 'department_changes';
         });
-        
+
         $periods = array_values($periods);
-        
+
         if (count($periods) < 2) {
             return $changes;
         }
-        
+
         // Get all departments across all periods
         $allDepartments = [];
         foreach ($periods as $period) {
@@ -354,21 +520,21 @@ class AdvancedAnalysisService
             }
         }
         $allDepartments = array_unique($allDepartments);
-        
+
         foreach ($allDepartments as $department) {
             $changes[$department] = [];
-            
+
             for ($i = 1; $i < count($periods); $i++) {
                 $currentPeriod = $periods[$i];
                 $previousPeriod = $periods[$i - 1];
-                
+
                 $currentStats = $comparison[$currentPeriod]['departments'][$department]['statistics'] ?? null;
                 $previousStats = $comparison[$previousPeriod]['departments'][$department]['statistics'] ?? null;
-                
+
                 if ($currentStats && $previousStats) {
                     $scoreChange = $currentStats['avg_score'] - $previousStats['avg_score'];
                     $employeeChange = $currentStats['total_employees'] - $previousStats['total_employees'];
-                    
+
                     $changes[$department]["{$previousPeriod}_to_{$currentPeriod}"] = [
                         'score_change' => $scoreChange,
                         'score_change_percentage' => $previousStats['avg_score'] > 0 ? ($scoreChange / $previousStats['avg_score']) * 100 : 0,
@@ -378,7 +544,7 @@ class AdvancedAnalysisService
                 }
             }
         }
-        
+
         return $changes;
     }
 
@@ -387,6 +553,7 @@ class AdvancedAnalysisService
      */
     public function performanceForecast(int $employeeId, int $periodsAhead = 3, array $methods = ['linear_trend', 'moving_average', 'weighted_average'], float $confidenceLevel = 0.95): array
     {
+        $startTime = microtime(true);
         // Get historical data for the employee
         $historicalResults = EvaluationResult::where('employee_id', $employeeId)
             ->orderBy('evaluation_period')
@@ -397,25 +564,59 @@ class AdvancedAnalysisService
         }
 
         $forecasts = [];
-        
+
         // Calculate forecasts based on requested methods
         if (in_array('linear_trend', $methods)) {
             $forecasts['linear_trend'] = $this->calculateLinearTrendForecast($historicalResults, $periodsAhead);
         }
-        
+
         if (in_array('moving_average', $methods)) {
             $forecasts['moving_average'] = $this->calculateMovingAverageForecast($historicalResults, $periodsAhead);
         }
-        
+
         if (in_array('weighted_average', $methods)) {
             $forecasts['weighted_average'] = $this->calculateWeightedMovingAverageForecast($historicalResults, $periodsAhead);
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'performance_forecast',
+                [
+                    'employee_id' => $employeeId,
+                    'periods_ahead' => $periodsAhead,
+                    'methods' => $methods,
+                    'confidence_level' => $confidenceLevel
+                ],
+                [
+                    'total_historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead,
+                    'methods_used' => count($methods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record performance forecast history: " . $e->getMessage());
+        }
+
+        $confidenceIntervals = $this->calculateConfidenceIntervals($historicalResults, $confidenceLevel);
+        $forecastAccuracy = $this->calculateForecastAccuracy($historicalResults);
+
+        // Debug logging
+        Log::info('Performance forecast data structure:', [
+            'confidence_intervals' => $confidenceIntervals,
+            'forecast_accuracy' => $forecastAccuracy,
+            'forecasts_count' => count($forecasts),
+            'historical_data_count' => $historicalResults->count()
+        ]);
+
         return [
             'historical_data' => $historicalResults,
             'forecasts' => $forecasts,
-            'confidence_intervals' => $this->calculateConfidenceIntervals($historicalResults, $confidenceLevel),
-            'forecast_accuracy' => $this->calculateForecastAccuracy($historicalResults)
+            'confidence_intervals' => $confidenceIntervals,
+            'forecast_accuracy' => $forecastAccuracy
         ];
     }
 
@@ -463,6 +664,7 @@ class AdvancedAnalysisService
      */
     private function calculateSAWWithModifiedWeights(string $evaluationPeriod, array $newWeights): Collection
     {
+        $startTime = microtime(true);
         // Validate input
         if (empty($newWeights)) {
             throw new \InvalidArgumentException('New weights array cannot be empty');
@@ -506,10 +708,10 @@ class AdvancedAnalysisService
         // Get all criteria and merge with new weights
         $allCriterias = Criteria::all();
         $originalWeights = $this->getCriteriaWeights($evaluationPeriod);
-        
+
         // Merge new weights with original weights
         $finalWeights = array_merge($originalWeights, $newWeights);
-        
+
         $employees = Employee::whereIn('id', $evaluations->pluck('employee_id')->unique())->get();
         $criterias = $allCriterias;
 
@@ -578,6 +780,28 @@ class AdvancedAnalysisService
             $result->ranking = $index + 1;
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'saw_with_modified_weights',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenario_name' => 'sensitivity_scenario', // This will be passed from the caller
+                    'new_weights' => $newWeights
+                ],
+                [
+                    'total_employees' => $originalResults->count(),
+                    'total_criteria' => count($finalWeights),
+                    'scenario_name' => 'sensitivity_scenario'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record SAW with modified weights history: " . $e->getMessage());
+        }
+
         return collect($results);
     }
 
@@ -586,33 +810,55 @@ class AdvancedAnalysisService
      */
     private function convertScoreChangesFormat(string $evaluationPeriod, array $scoreChangeData): array
     {
+        $startTime = microtime(true);
         $scoreChanges = [];
-        
+
         // Frontend sends: {employee_id: X, score_change: Y}
         // Backend expects: scoreChanges[employee_id][criteria_id] = newScore
-        
+
         if (isset($scoreChangeData['employee_id']) && isset($scoreChangeData['score_change'])) {
             $employeeId = $scoreChangeData['employee_id'];
             $scoreChangePercent = $scoreChangeData['score_change'];
-            
+
             // Get all evaluations for this employee in the evaluation period
             $evaluations = Evaluation::where('evaluation_period', $evaluationPeriod)
                 ->where('employee_id', $employeeId)
                 ->with('criteria')
                 ->get();
-            
+
             foreach ($evaluations as $evaluation) {
                 // Calculate new score by applying percentage change
                 $originalScore = $evaluation->score;
                 $newScore = $originalScore + ($originalScore * $scoreChangePercent / 100);
-                
+
                 // Ensure score stays within valid range (0-100)
                 $newScore = max(0, min(100, $newScore));
-                
+
                 $scoreChanges[$employeeId][$evaluation->criteria_id] = $newScore;
             }
         }
-        
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'score_changes_format',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenario_name' => 'what_if_scenario', // This will be passed from the caller
+                    'score_change_data' => $scoreChangeData
+                ],
+                [
+                    'total_employees' => count($scoreChanges),
+                    'scenario_name' => 'what_if_scenario'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record score changes format history: " . $e->getMessage());
+        }
+
         return $scoreChanges;
     }
 
@@ -621,21 +867,22 @@ class AdvancedAnalysisService
      */
     private function convertCriteriaChangesFormat(array $criteriaChangeData): array
     {
+        $startTime = microtime(true);
         $convertedChanges = [];
-        
+
         // Frontend sends: {action: 'remove', criteria_id: X} or {action: 'add', name: Y, weight: Z, type: W} etc.
         // Backend expects: {remove: [criteria_id], add: {criteria_id: weight}, modify: {criteria_id: weight}}
-        
+
         if (isset($criteriaChangeData['action'])) {
             $action = $criteriaChangeData['action'];
-            
+
             switch ($action) {
                 case 'remove':
                     if (isset($criteriaChangeData['criteria_id'])) {
                         $convertedChanges['remove'] = [$criteriaChangeData['criteria_id']];
                     }
                     break;
-                    
+
                 case 'add':
                     if (isset($criteriaChangeData['name'], $criteriaChangeData['weight'], $criteriaChangeData['type'])) {
                         // For add operation, we need to create a temporary criteria ID
@@ -651,7 +898,7 @@ class AdvancedAnalysisService
                         ];
                     }
                     break;
-                    
+
                 case 'modify':
                     if (isset($criteriaChangeData['criteria_id'], $criteriaChangeData['weight'])) {
                         $convertedChanges['modify'] = [
@@ -661,7 +908,28 @@ class AdvancedAnalysisService
                     break;
             }
         }
-        
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'criteria_changes_format',
+                [
+                    'evaluation_period' => $evaluationPeriod, // This will be passed from the caller
+                    'scenario_name' => 'what_if_scenario', // This will be passed from the caller
+                    'criteria_change_data' => $criteriaChangeData
+                ],
+                [
+                    'total_criteria' => count($convertedChanges),
+                    'scenario_name' => 'what_if_scenario'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record criteria changes format history: " . $e->getMessage());
+        }
+
         return $convertedChanges;
     }
 
@@ -670,6 +938,7 @@ class AdvancedAnalysisService
      */
     private function calculateSAWWithModifiedScores(string $evaluationPeriod, array $scoreChanges): Collection
     {
+        $startTime = microtime(true);
         try {
             // Get original evaluation results with proper relationships
             $originalResults = EvaluationResult::where('evaluation_period', $evaluationPeriod)
@@ -709,13 +978,13 @@ class AdvancedAnalysisService
             $normalizedScores = [];
             foreach ($criterias as $criteria) {
                 $scores = [];
-                
+
                 // Collect scores for this criteria (with modifications applied)
                 foreach ($employees as $employee) {
                     $evaluation = $evaluations->get($employee->id)?->firstWhere('criteria_id', $criteria->id);
                     if ($evaluation) {
                         $originalScore = $evaluation->score;
-                        
+
                         // Apply score change if specified
                         if (isset($scoreChanges[$employee->id][$criteria->id])) {
                             $newScore = $scoreChanges[$employee->id][$criteria->id];
@@ -781,9 +1050,50 @@ class AdvancedAnalysisService
                 $result->ranking = $index + 1;
             }
 
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            try {
+                $this->historyService->recordAnalysis(
+                    'saw_with_modified_scores',
+                    [
+                        'evaluation_period' => $evaluationPeriod,
+                        'scenario_name' => 'what_if_scenario', // This will be passed from the caller
+                        'score_change_data' => $scoreChanges
+                    ],
+                    [
+                        'total_employees' => count($employees),
+                        'total_criteria' => count($criterias),
+                        'scenario_name' => 'what_if_scenario'
+                    ],
+                    $executionTime
+                );
+            } catch (\Exception $e) {
+                Log::warning("Failed to record SAW with modified scores history: " . $e->getMessage());
+            }
+
             return collect($results);
 
         } catch (\Exception $e) {
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record failed analysis
+            try {
+                $this->historyService->recordAnalysis(
+                    'saw_with_modified_scores',
+                    [
+                        'evaluation_period' => $evaluationPeriod,
+                        'score_change_data' => $scoreChanges
+                    ],
+                    [],
+                    $executionTime,
+                    'failed',
+                    $e->getMessage()
+                );
+            } catch (\Exception $historyError) {
+                Log::warning("Failed to record failed SAW with modified scores history: " . $historyError->getMessage());
+            }
+
             \Log::error("Error in calculateSAWWithModifiedScores: " . $e->getMessage());
             throw new \Exception("Failed to calculate SAW with modified scores: " . $e->getMessage());
         }
@@ -794,10 +1104,11 @@ class AdvancedAnalysisService
      */
     private function calculateSAWWithModifiedCriteria(string $evaluationPeriod, array $criteriaChanges): Collection
     {
+        $startTime = microtime(true);
         try {
             // Convert frontend format to backend expected format
             $convertedChanges = $this->convertCriteriaChangesFormat($criteriaChanges);
-            
+
             // Get original evaluation results with proper relationships
             $originalResults = EvaluationResult::where('evaluation_period', $evaluationPeriod)
                 ->with([
@@ -871,7 +1182,7 @@ class AdvancedAnalysisService
         // Get all employees and create criteria objects for modified weights
         $employees = Employee::whereIn('id', $evaluations->pluck('employee_id')->unique())->get();
         $allCriterias = Criteria::all();
-        
+
         // Create modified criteria collection
         $modifiedCriterias = collect();
         foreach ($modifiedWeights as $criteriaId => $weight) {
@@ -914,7 +1225,7 @@ class AdvancedAnalysisService
                 }
                 continue;
             }
-            
+
             $criteriaEvaluations = $evaluationsByCriteria->get($criteria->id, collect());
             $scores = $criteriaEvaluations->pluck('score')->toArray();
 
@@ -922,7 +1233,7 @@ class AdvancedAnalysisService
 
             // Check if criteria has isBenefit method or use type property
             $isBenefit = method_exists($criteria, 'isBenefit') ? $criteria->isBenefit() : ($criteria->type === 'benefit');
-            
+
             if ($isBenefit) {
                 // Benefit: Rij = Xij / Max(Xij)
                 $maxScore = max($scores);
@@ -976,9 +1287,50 @@ class AdvancedAnalysisService
 
         $modifiedResults = collect($results);
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'saw_with_modified_criteria',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenario_name' => 'what_if_scenario', // This will be passed from the caller
+                    'criteria_change_data' => $criteriaChanges
+                ],
+                [
+                    'total_employees' => count($employees),
+                    'total_criteria' => count($modifiedCriterias),
+                    'scenario_name' => 'what_if_scenario'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record SAW with modified criteria history: " . $e->getMessage());
+        }
+
         return $modifiedResults;
 
         } catch (\Exception $e) {
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record failed analysis
+            try {
+                $this->historyService->recordAnalysis(
+                    'saw_with_modified_criteria',
+                    [
+                        'evaluation_period' => $evaluationPeriod,
+                        'criteria_change_data' => $criteriaChanges
+                    ],
+                    [],
+                    $executionTime,
+                    'failed',
+                    $e->getMessage()
+                );
+            } catch (\Exception $historyError) {
+                Log::warning("Failed to record failed SAW with modified criteria history: " . $historyError->getMessage());
+            }
+
             \Log::error("Error in calculateSAWWithModifiedCriteria: " . $e->getMessage());
             throw new \Exception("Failed to calculate SAW with modified criteria: " . $e->getMessage());
         }
@@ -989,6 +1341,7 @@ class AdvancedAnalysisService
      */
     private function compareRankings(Collection $original, Collection $modified): array
     {
+        $startTime = microtime(true);
         $changes = [];
 
         foreach ($original as $originalResult) {
@@ -1012,6 +1365,28 @@ class AdvancedAnalysisService
             }
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'ranking_comparison',
+                [
+                    'evaluation_period' => $evaluationPeriod, // This will be passed from the caller
+                    'scenario_name' => 'sensitivity_scenario', // This will be passed from the caller
+                    'original_results' => $original->toArray(),
+                    'modified_results' => $modified->toArray()
+                ],
+                [
+                    'total_employees' => $original->count(),
+                    'scenario_name' => 'sensitivity_scenario'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record ranking comparison history: " . $e->getMessage());
+        }
+
         return $changes;
     }
 
@@ -1020,6 +1395,7 @@ class AdvancedAnalysisService
      */
     private function calculateSensitivityMetrics(Collection $original, Collection $modified): array
     {
+        $startTime = microtime(true);
         $rankingChanges = [];
         $scoreChanges = [];
 
@@ -1029,6 +1405,28 @@ class AdvancedAnalysisService
                 $rankingChanges[] = abs($originalResult->ranking - $modifiedResult->ranking);
                 $scoreChanges[] = abs($originalResult->total_score - $modifiedResult->total_score);
             }
+        }
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'sensitivity_metrics',
+                [
+                    'evaluation_period' => $evaluationPeriod, // This will be passed from the caller
+                    'scenario_name' => 'sensitivity_scenario', // This will be passed from the caller
+                    'original_results' => $original->toArray(),
+                    'modified_results' => $modified->toArray()
+                ],
+                [
+                    'total_employees' => $original->count(),
+                    'scenario_name' => 'sensitivity_scenario'
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record sensitivity metrics history: " . $e->getMessage());
         }
 
         return [
@@ -1045,12 +1443,31 @@ class AdvancedAnalysisService
      */
     private function getCriteriaWeights(string $evaluationPeriod): array
     {
+        $startTime = microtime(true);
         // Get criteria weights from the database
         $criteria = \App\Models\Criteria::all();
 
         $weights = [];
         foreach ($criteria as $criterion) {
             $weights[$criterion->id] = $criterion->weight;
+        }
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'criteria_weights',
+                [
+                    'evaluation_period' => $evaluationPeriod
+                ],
+                [
+                    'total_criteria' => count($weights)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record criteria weights history: " . $e->getMessage());
         }
 
         return $weights;
@@ -1061,6 +1478,7 @@ class AdvancedAnalysisService
      */
     private function generateSensitivitySummary(array $sensitivityData): array
     {
+        $startTime = microtime(true);
         $summary = [
             'most_sensitive_scenario' => null,
             'least_sensitive_scenario' => null,
@@ -1079,6 +1497,26 @@ class AdvancedAnalysisService
             $summary['avg_stability_index'] = array_sum($stabilityIndices) / count($stabilityIndices);
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'sensitivity_summary',
+                [
+                    'evaluation_period' => $evaluationPeriod, // This will be passed from the caller
+                    'scenario_count' => count($sensitivityData)
+                ],
+                [
+                    'total_scenarios' => count($sensitivityData),
+                    'avg_stability_index' => $summary['avg_stability_index']
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record sensitivity summary history: " . $e->getMessage());
+        }
+
         return $summary;
     }
 
@@ -1087,7 +1525,26 @@ class AdvancedAnalysisService
      */
     private function calculateGrowthRates(array $periods): array
     {
+        $startTime = microtime(true);
         // Implementation for growth rate calculation
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'growth_rates',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record growth rates history: " . $e->getMessage());
+        }
+
         return [];
     }
 
@@ -1096,7 +1553,26 @@ class AdvancedAnalysisService
      */
     private function calculatePerformanceVariance(array $periods): array
     {
+        $startTime = microtime(true);
         // Implementation for variance analysis
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'performance_variance',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record performance variance history: " . $e->getMessage());
+        }
+
         return [];
     }
 
@@ -1105,7 +1581,26 @@ class AdvancedAnalysisService
      */
     private function calculateCriteriaCorrelation(array $periods): array
     {
+        $startTime = microtime(true);
         // Implementation for correlation analysis
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'criteria_correlation',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record criteria correlation history: " . $e->getMessage());
+        }
+
         return [];
     }
 
@@ -1114,7 +1609,26 @@ class AdvancedAnalysisService
      */
     private function calculateDepartmentTrends(array $periods): array
     {
+        $startTime = microtime(true);
         // Implementation for department trend analysis
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'department_trends',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record department trends history: " . $e->getMessage());
+        }
+
         return [];
     }
 
@@ -1123,7 +1637,26 @@ class AdvancedAnalysisService
      */
     private function calculateDistributionAnalysis(array $periods): array
     {
+        $startTime = microtime(true);
         // Implementation for distribution analysis
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'distribution_analysis',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record distribution analysis history: " . $e->getMessage());
+        }
+
         return [];
     }
 
@@ -1132,6 +1665,7 @@ class AdvancedAnalysisService
      */
     private function calculatePeriodChanges(array $comparison): array
     {
+        $startTime = microtime(true);
         $periods = array_keys($comparison);
         $changes = [];
 
@@ -1154,6 +1688,24 @@ class AdvancedAnalysisService
             ];
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'period_changes',
+                [
+                    'periods' => $periods
+                ],
+                [
+                    'total_periods' => count($periods)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record period changes history: " . $e->getMessage());
+        }
+
         return $changes;
     }
 
@@ -1162,6 +1714,7 @@ class AdvancedAnalysisService
      */
     private function calculateLinearTrendForecast(Collection $historicalResults, int $periodsAhead): array
     {
+        $startTime = microtime(true);
         // Simple linear regression implementation
         $n = $historicalResults->count();
         $x = range(1, $n);
@@ -1188,6 +1741,26 @@ class AdvancedAnalysisService
             ];
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'linear_trend_forecast',
+                [
+                    'historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead
+                ],
+                [
+                    'total_historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record linear trend forecast history: " . $e->getMessage());
+        }
+
         return $forecast;
     }
 
@@ -1196,6 +1769,7 @@ class AdvancedAnalysisService
      */
     private function calculateMovingAverageForecast(Collection $historicalResults, int $periodsAhead): array
     {
+        $startTime = microtime(true);
         $windowSize = min(3, $historicalResults->count());
         $recentScores = $historicalResults->slice(-$windowSize)->pluck('total_score');
         $average = $recentScores->avg();
@@ -1208,6 +1782,26 @@ class AdvancedAnalysisService
             ];
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'moving_average_forecast',
+                [
+                    'historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead
+                ],
+                [
+                    'total_historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record moving average forecast history: " . $e->getMessage());
+        }
+
         return $forecast;
     }
 
@@ -1216,6 +1810,7 @@ class AdvancedAnalysisService
      */
     private function calculateWeightedMovingAverageForecast(Collection $historicalResults, int $periodsAhead): array
     {
+        $startTime = microtime(true);
         $windowSize = min(3, $historicalResults->count());
         $recentScores = $historicalResults->slice(-$windowSize)->pluck('total_score')->toArray();
 
@@ -1238,6 +1833,26 @@ class AdvancedAnalysisService
             ];
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'weighted_moving_average_forecast',
+                [
+                    'historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead
+                ],
+                [
+                    'total_historical_periods' => $historicalResults->count(),
+                    'periods_ahead' => $periodsAhead
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record weighted moving average forecast history: " . $e->getMessage());
+        }
+
         return $forecast;
     }
 
@@ -1246,23 +1861,44 @@ class AdvancedAnalysisService
      */
     private function calculateConfidenceIntervals(Collection $historicalResults, float $confidenceLevel = 0.95): array
     {
+        $startTime = microtime(true);
         $scores = $historicalResults->pluck('total_score');
         $mean = $scores->avg();
         $stdDev = $this->calculateStandardDeviation($scores);
-        
+
         // Z-scores for different confidence levels
         $zScores = [
             0.90 => 1.645,
             0.95 => 1.96,
             0.99 => 2.576
         ];
-        
+
         $zScore = $zScores[$confidenceLevel] ?? 1.96; // Default to 95% if not found
-        
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'confidence_intervals',
+                [
+                    'historical_periods' => $historicalResults->count(),
+                    'confidence_level' => $confidenceLevel
+                ],
+                [
+                    'total_historical_periods' => $historicalResults->count(),
+                    'confidence_level' => $confidenceLevel
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record confidence intervals history: " . $e->getMessage());
+        }
+
         return [
             'confidence_level' => $confidenceLevel,
-            'lower' => $mean - ($zScore * $stdDev),
-            'upper' => $mean + ($zScore * $stdDev)
+            'lower_bound' => $mean - ($zScore * $stdDev),
+            'upper_bound' => $mean + ($zScore * $stdDev)
         ];
     }
 
@@ -1271,6 +1907,7 @@ class AdvancedAnalysisService
      */
     private function calculateForecastAccuracy(Collection $historicalResults): array
     {
+        $startTime = microtime(true);
         if ($historicalResults->count() < 4) {
             return ['accuracy' => 'insufficient_data'];
         }
@@ -1290,7 +1927,27 @@ class AdvancedAnalysisService
             }
         }
 
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'forecast_accuracy',
+                [
+                    'historical_periods' => $historicalResults->count()
+                ],
+                [
+                    'total_historical_periods' => $historicalResults->count()
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record forecast accuracy history: " . $e->getMessage());
+        }
+
         return [
+            'accuracy' => count($errors) > 0 ? 'calculated' : 'insufficient_data',
+            'mape' => count($errors) > 0 ? (array_sum($errors) / count($errors)) * 100 : 0,
             'mean_absolute_error' => count($errors) > 0 ? array_sum($errors) / count($errors) : 0,
             'accuracy_percentage' => count($errors) > 0 ? (1 - (array_sum($errors) / count($errors))) * 100 : 0
         ];
@@ -1301,12 +1958,33 @@ class AdvancedAnalysisService
      */
     private function calculateStandardDeviation(Collection $values): float
     {
+        $startTime = microtime(true);
         $mean = $values->avg();
         $squaredDiffs = $values->map(function ($value) use ($mean) {
             return pow($value - $mean, 2);
         });
 
-        return sqrt($squaredDiffs->avg());
+        $stdDev = sqrt($squaredDiffs->avg());
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'standard_deviation',
+                [
+                    'values' => $values->toArray()
+                ],
+                [
+                    'total_values' => $values->count()
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record standard deviation history: " . $e->getMessage());
+        }
+
+        return $stdDev;
     }
 
     /**
@@ -1314,6 +1992,7 @@ class AdvancedAnalysisService
      */
     private function calculateStabilityIndex(array $rankingChanges): float
     {
+        $startTime = microtime(true);
         if (empty($rankingChanges)) {
             return 1.0;
         }
@@ -1321,6 +2000,26 @@ class AdvancedAnalysisService
         $maxPossibleChange = count($rankingChanges);
         $avgChange = array_sum($rankingChanges) / count($rankingChanges);
 
-        return 1 - ($avgChange / $maxPossibleChange);
+        $stabilityIndex = 1 - ($avgChange / $maxPossibleChange);
+
+        $executionTime = round((microtime(true) - $startTime) * 1000);
+
+        // Record analysis history
+        try {
+            $this->historyService->recordAnalysis(
+                'stability_index',
+                [
+                    'ranking_changes' => $rankingChanges
+                ],
+                [
+                    'total_changes' => count($rankingChanges)
+                ],
+                $executionTime
+            );
+        } catch (\Exception $e) {
+            Log::warning("Failed to record stability index history: " . $e->getMessage());
+        }
+
+        return $stabilityIndex;
     }
 }

@@ -22,6 +22,11 @@ require __DIR__.'/auth.php';
 // Test routes (for debugging)
 if (app()->environment(['local', 'testing'])) {
     require __DIR__.'/test.php';
+
+    // Test export routes without authentication (for debugging)
+    Route::get('/test/employees/export', [EmployeeController::class, 'export'])->name('test.employees.export');
+    Route::get('/test/employees/export/pdf', [EmployeeController::class, 'exportPdf'])->name('test.employees.export-pdf');
+    Route::get('/test/employees/export/excel', [EmployeeController::class, 'exportExcel'])->name('test.employees.export-excel');
 }
 
 // Protected routes - require authentication
@@ -130,30 +135,36 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::middleware(['auth'])->prefix('analysis')->name('analysis.')->group(function () {
     // Dashboard
     Route::get('/', [App\Http\Controllers\AnalysisController::class, 'index'])->name('index');
-    
+
     // API Endpoints for AJAX requests
     Route::post('/sensitivity', [App\Http\Controllers\AnalysisController::class, 'sensitivityAnalysis'])->name('sensitivity');
     Route::post('/what-if', [App\Http\Controllers\AnalysisController::class, 'whatIfScenarios'])->name('what-if');
     Route::post('/comparison', [App\Http\Controllers\AnalysisController::class, 'multiPeriodComparison'])->name('comparison');
     Route::post('/statistics', [App\Http\Controllers\AnalysisController::class, 'advancedStatistics'])->name('statistics');
     Route::post('/forecast', [App\Http\Controllers\AnalysisController::class, 'performanceForecast'])->name('forecast');
-    
+
     // View Routes
     Route::get('/sensitivity', [App\Http\Controllers\AnalysisController::class, 'sensitivityView'])->name('sensitivity.view');
     Route::get('/what-if', [App\Http\Controllers\AnalysisController::class, 'whatIfView'])->name('what-if.view');
     Route::get('/comparison', [App\Http\Controllers\AnalysisController::class, 'comparisonView'])->name('comparison.view');
     Route::get('/forecast', [App\Http\Controllers\AnalysisController::class, 'forecastView'])->name('forecast.view');
-    
+
     // Utility Routes
     Route::get('/periods', [App\Http\Controllers\AnalysisController::class, 'getAvailablePeriods'])->name('periods');
     Route::get('/criterias', [App\Http\Controllers\AnalysisController::class, 'getCriterias'])->name('criterias');
     Route::get('/forecast/historical', [App\Http\Controllers\AnalysisController::class, 'getEmployeeHistoricalData'])->name('forecast.historical');
-    
+
     // Export & Configuration
     Route::post('/export', [App\Http\Controllers\AnalysisController::class, 'exportAnalysis'])->name('export');
     Route::get('/history', [App\Http\Controllers\AnalysisController::class, 'getAnalysisHistory'])->name('history');
     Route::post('/save-config', [App\Http\Controllers\AnalysisController::class, 'saveConfiguration'])->name('save-config');
-    
+
+    // Advanced Statistics & History Management
+    Route::get('/advanced-statistics', [App\Http\Controllers\AnalysisController::class, 'getAdvancedStatistics'])->name('advanced-statistics');
+    Route::get('/analysis-statistics', [App\Http\Controllers\AnalysisController::class, 'getAnalysisStatistics'])->name('analysis-statistics');
+    Route::get('/history/export', [App\Http\Controllers\AnalysisController::class, 'exportAnalysisHistory'])->name('history.export');
+    Route::delete('/history/{analysis_id}', [App\Http\Controllers\AnalysisController::class, 'deleteAnalysisHistory'])->name('history.delete');
+
     // Debug Route
     Route::get('/debug', [App\Http\Controllers\AnalysisController::class, 'debugView'])->name('debug');
 });

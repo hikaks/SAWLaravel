@@ -8,6 +8,8 @@ use App\Models\Evaluation;
 use App\Models\EvaluationResult;
 use App\Services\AdvancedAnalysisService;
 use App\Services\CacheService;
+use App\Services\AdvancedStatisticsService;
+use App\Services\AnalysisHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -16,11 +18,19 @@ class AnalysisController extends Controller
 {
     protected $analysisService;
     protected $cacheService;
+    protected $statisticsService;
+    protected $historyService;
 
-    public function __construct(AdvancedAnalysisService $analysisService, CacheService $cacheService)
-    {
+    public function __construct(
+        AdvancedAnalysisService $analysisService,
+        CacheService $cacheService,
+        AdvancedStatisticsService $statisticsService,
+        AnalysisHistoryService $historyService
+    ) {
         $this->analysisService = $analysisService;
         $this->cacheService = $cacheService;
+        $this->statisticsService = $statisticsService;
+        $this->historyService = $historyService;
     }
 
     /**
@@ -59,6 +69,7 @@ class AnalysisController extends Controller
         }
 
         try {
+            $startTime = microtime(true);
             $evaluationPeriod = $request->input('evaluation_period');
             $weightChanges = [];
 
@@ -77,13 +88,47 @@ class AnalysisController extends Controller
                 return $this->analysisService->sensitivityAnalysis($evaluationPeriod, $weightChanges);
             });
 
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->historyService->recordAnalysis(
+                'sensitivity',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'weight_changes' => $weightChanges,
+                    'scenarios_count' => count($results['scenarios'] ?? [])
+                ],
+                [
+                    'total_scenarios' => count($results['scenarios'] ?? []),
+                    'total_employees' => count($results['rankings'] ?? []),
+                    'most_sensitive_criteria' => $results['most_sensitive_criteria'] ?? 'N/A',
+                    'avg_ranking_change' => $results['avg_ranking_change'] ?? 0
+                ],
+                $executionTime
+            );
+
             return response()->json([
                 'success' => true,
-                'data' => $results
+                'data' => $results,
+                'execution_time' => $executionTime
             ]);
 
         } catch (\Exception $e) {
             Log::error('Sensitivity analysis failed: ' . $e->getMessage());
+
+            // Record failed analysis
+            $this->historyService->recordAnalysis(
+                'sensitivity',
+                [
+                    'evaluation_period' => $request->input('evaluation_period'),
+                    'weight_changes' => $weightChanges ?? []
+                ],
+                [],
+                0,
+                'failed',
+                $e->getMessage()
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Analysis failed: ' . $e->getMessage()
@@ -112,6 +157,7 @@ class AnalysisController extends Controller
         }
 
         try {
+            $startTime = microtime(true);
             $evaluationPeriod = $request->input('evaluation_period');
             $scenarios = [];
 
@@ -126,13 +172,47 @@ class AnalysisController extends Controller
                 return $this->analysisService->whatIfAnalysis($evaluationPeriod, $scenarios);
             });
 
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->historyService->recordAnalysis(
+                'what-if',
+                [
+                    'evaluation_period' => $evaluationPeriod,
+                    'scenarios_count' => count($scenarios),
+                    'scenario_types' => array_keys($scenarios)
+                ],
+                [
+                    'scenarios_analyzed' => count($scenarios),
+                    'total_employees' => count($results['rankings'] ?? []),
+                    'best_performer' => $results['best_performer'] ?? 'N/A',
+                    'improvement_potential' => $results['improvement_potential'] ?? 'N/A'
+                ],
+                $executionTime
+            );
+
             return response()->json([
                 'success' => true,
-                'data' => $results
+                'data' => $results,
+                'execution_time' => $executionTime
             ]);
 
         } catch (\Exception $e) {
             Log::error('What-if analysis failed: ' . $e->getMessage());
+
+            // Record failed analysis
+            $this->historyService->recordAnalysis(
+                'what-if',
+                [
+                    'evaluation_period' => $request->input('evaluation_period'),
+                    'scenarios' => $request->input('scenarios', [])
+                ],
+                [],
+                0,
+                'failed',
+                $e->getMessage()
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Analysis failed: ' . $e->getMessage()
@@ -152,7 +232,7 @@ class AnalysisController extends Controller
             'employee_id' => 'sometimes|exists:employees,id',
             'department_id' => 'sometimes|string'
         ]);
-        
+
         // Custom validation for department_id
         if ($request->has('department_id') && !empty($request->input('department_id'))) {
             $departmentExists = Employee::where('department', $request->input('department_id'))->exists();
@@ -172,6 +252,7 @@ class AnalysisController extends Controller
         }
 
         try {
+            $startTime = microtime(true);
             $periods = $request->input('periods');
             $comparisonType = $request->input('comparison_type', 'all');
             $employeeId = $request->input('employee_id');
@@ -182,13 +263,48 @@ class AnalysisController extends Controller
                 return $this->analysisService->multiPeriodComparison($periods, $comparisonType, $employeeId, $departmentId);
             });
 
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->historyService->recordAnalysis(
+                'comparison',
+                [
+                    'periods' => $periods,
+                    'comparison_type' => $comparisonType,
+                    'employee_id' => $employeeId,
+                    'department_id' => $departmentId
+                ],
+                [
+                    'periods_compared' => count($periods),
+                    'trend_direction' => $results['trend_analysis']['trend_direction'] ?? 'N/A',
+                    'avg_improvement' => $results['trend_analysis']['overall_change'] ?? 'N/A',
+                    'total_employees' => count($results['employee_comparisons'] ?? [])
+                ],
+                $executionTime
+            );
+
             return response()->json([
                 'success' => true,
-                'data' => $results
+                'data' => $results,
+                'execution_time' => $executionTime
             ]);
 
         } catch (\Exception $e) {
             Log::error('Multi-period comparison failed: ' . $e->getMessage());
+
+            // Record failed analysis
+            $this->historyService->recordAnalysis(
+                'comparison',
+                [
+                    'periods' => $request->input('periods', []),
+                    'comparison_type' => $request->input('comparison_type', 'all')
+                ],
+                [],
+                0,
+                'failed',
+                $e->getMessage()
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Comparison failed: ' . $e->getMessage()
@@ -245,7 +361,7 @@ class AnalysisController extends Controller
             'periods_ahead' => 'sometimes|integer|min:1|max:12',
             'methods' => 'sometimes|array',
             'methods.*' => 'sometimes|in:linear_trend,moving_average,weighted_average',
-            'confidence_level' => 'sometimes|numeric|min:0.5|max:0.99'
+            'confidence_level' => 'sometimes|numeric|min:50|max:99'
         ]);
 
         if ($validator->fails()) {
@@ -256,23 +372,62 @@ class AnalysisController extends Controller
         }
 
         try {
+            $startTime = microtime(true);
             $employeeId = $request->input('employee_id');
             $periodsAhead = $request->input('periods_ahead', 3);
             $methods = $request->input('methods', ['linear_trend', 'moving_average', 'weighted_average']);
-            $confidenceLevel = $request->input('confidence_level', 0.95);
+            $confidenceLevel = $request->input('confidence_level', 95);
+
+            // Convert percentage to decimal for service layer
+            $confidenceLevelDecimal = $confidenceLevel / 100;
 
             $cacheKey = "performance_forecast_{$employeeId}_{$periodsAhead}_" . md5(json_encode($methods) . "_{$confidenceLevel}");
-            $results = $this->cacheService->remember($cacheKey, 1800, function() use ($employeeId, $periodsAhead, $methods, $confidenceLevel) {
-                return $this->analysisService->performanceForecast($employeeId, $periodsAhead, $methods, $confidenceLevel);
+            $results = $this->cacheService->remember($cacheKey, 1800, function() use ($employeeId, $periodsAhead, $methods, $confidenceLevelDecimal) {
+                return $this->analysisService->performanceForecast($employeeId, $periodsAhead, $methods, $confidenceLevelDecimal);
             });
+
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->historyService->recordAnalysis(
+                'forecast',
+                [
+                    'employee_id' => $employeeId,
+                    'periods_ahead' => $periodsAhead,
+                    'methods' => $methods,
+                    'confidence_level' => $confidenceLevel
+                ],
+                [
+                    'forecast_periods' => $periodsAhead,
+                    'predicted_trend' => $results['trend_prediction'] ?? 'N/A',
+                    'confidence_interval' => $results['confidence_interval'] ?? 'N/A',
+                    'accuracy_score' => $results['accuracy_score'] ?? 'N/A'
+                ],
+                $executionTime
+            );
 
             return response()->json([
                 'success' => true,
-                'data' => $results
+                'data' => $results,
+                'execution_time' => $executionTime
             ]);
 
         } catch (\Exception $e) {
             Log::error('Performance forecast failed: ' . $e->getMessage());
+
+            // Record failed analysis
+            $this->historyService->recordAnalysis(
+                'forecast',
+                [
+                    'employee_id' => $request->input('employee_id'),
+                    'periods_ahead' => $request->input('periods_ahead', 3)
+                ],
+                [],
+                0,
+                'failed',
+                $e->getMessage()
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Forecast failed: ' . $e->getMessage()
@@ -322,7 +477,7 @@ class AnalysisController extends Controller
             ->pluck('evaluation_period');
 
         $criterias = Criteria::orderBy('weight', 'desc')->get();
-        
+
         $selectedPeriod = $request->input('period', $availablePeriods->first());
 
         return view('analysis.sensitivity', compact('availablePeriods', 'criterias', 'selectedPeriod'));
@@ -340,7 +495,7 @@ class AnalysisController extends Controller
 
         $criterias = Criteria::orderBy('weight', 'desc')->get();
         $employees = Employee::orderBy('name')->get();
-        
+
         $selectedPeriod = $request->input('period', $availablePeriods->first());
 
         return view('analysis.what-if', compact('availablePeriods', 'criterias', 'employees', 'selectedPeriod'));
@@ -398,7 +553,7 @@ class AnalysisController extends Controller
 
             // Generate export based on type and format
             $filename = "analysis_{$type}_" . date('Y-m-d_H-i-s') . ".{$format}";
-            
+
             // Implementation would depend on the specific export requirements
             // For now, return success response
             return response()->json([
@@ -417,16 +572,35 @@ class AnalysisController extends Controller
     }
 
     /**
-     * Get analysis history
+     * Get Analysis History
      */
     public function getAnalysisHistory(Request $request)
     {
-        // This would typically fetch from a dedicated analysis_history table
-        // For now, return empty array as placeholder
-        return response()->json([
-            'success' => true,
-            'data' => []
+        $request->validate([
+            'analysis_type' => 'nullable|string|in:sensitivity,what-if,comparison,forecast,statistics',
+            'evaluation_period' => 'nullable|string',
+            'limit' => 'nullable|integer|min:1|max:100'
         ]);
+
+        try {
+            $analysisType = $request->input('analysis_type');
+            $evaluationPeriod = $request->input('evaluation_period');
+            $limit = $request->input('limit', 20);
+
+            $history = $this->historyService->getUserHistory($limit, $analysisType, $evaluationPeriod);
+
+            return response()->json([
+                'success' => true,
+                'data' => $history
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get analysis history failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve history: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -463,7 +637,7 @@ class AnalysisController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get employee historical data for forecasting
      */
@@ -474,7 +648,7 @@ class AnalysisController extends Controller
         ]);
 
         $employeeId = $request->input('employee_id');
-        
+
         // Get historical evaluation results for the employee
         $historicalData = EvaluationResult::where('employee_id', $employeeId)
             ->with(['employee'])
@@ -506,23 +680,221 @@ class AnalysisController extends Controller
 
         $criterias = Criteria::orderBy('weight', 'desc')->get();
         $employees = Employee::orderBy('name')->get();
-        
+
         // Get evaluation counts per period
         $periodCounts = [];
         foreach ($availablePeriods as $period) {
             $periodCounts[$period] = Evaluation::where('evaluation_period', $period)->count();
         }
-        
+
         $totalEvaluations = Evaluation::count();
         $totalResults = EvaluationResult::count();
 
         return view('analysis.debug', compact(
-            'availablePeriods', 
-            'criterias', 
-            'employees', 
+            'availablePeriods',
+            'criterias',
+            'employees',
             'periodCounts',
             'totalEvaluations',
             'totalResults'
         ));
+    }
+
+    /**
+     * Get Advanced Statistics
+     */
+    public function getAdvancedStatistics(Request $request)
+    {
+        $request->validate([
+            'evaluation_period' => 'nullable|string'
+        ]);
+
+        try {
+            $evaluationPeriod = $request->input('evaluation_period');
+            $startTime = microtime(true);
+
+            $statistics = $this->statisticsService->getStatisticalOverview($evaluationPeriod);
+
+            $executionTime = round((microtime(true) - $startTime) * 1000);
+
+            // Record analysis history
+            $this->historyService->recordAnalysis(
+                'statistics',
+                ['evaluation_period' => $evaluationPeriod],
+                [
+                    'total_employees' => $statistics['employee_stats']['summary']['total_employees'],
+                    'total_criteria' => $statistics['criteria_stats']['summary']['total_criteria'],
+                    'total_outliers' => $statistics['outlier_detection']['summary']['total_outliers'] ?? 0
+                ],
+                $executionTime
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $statistics,
+                'execution_time' => $executionTime
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Advanced statistics failed: ' . $e->getMessage());
+
+            // Record failed analysis
+            $this->historyService->recordAnalysis(
+                'statistics',
+                ['evaluation_period' => $request->input('evaluation_period')],
+                [],
+                0,
+                'failed',
+                $e->getMessage()
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Statistics generation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Analysis Statistics
+     */
+    public function getAnalysisStatistics()
+    {
+        try {
+            $statistics = $this->historyService->getStatistics();
+            $trends = $this->historyService->getRecentTrends();
+            $performance = $this->historyService->getPerformanceMetrics();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'overview' => $statistics,
+                    'trends' => $trends,
+                    'performance' => $performance
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get analysis statistics failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve statistics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export Analysis History
+     */
+    public function exportAnalysisHistory(Request $request)
+    {
+        try {
+            $filters = $request->only(['analysis_type', 'evaluation_period', 'status', 'date_from', 'date_to']);
+            $exportData = $this->historyService->exportHistory($filters);
+
+            if (empty($exportData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No data to export'
+                ], 404);
+            }
+
+            // Convert to CSV format
+            $csvContent = $this->convertToCSV($exportData);
+
+            return response()->json([
+                'success' => true,
+                'data' => $csvContent
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Export analysis history failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Export failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Convert data to CSV format
+     */
+    private function convertToCSV($data)
+    {
+        if (empty($data)) {
+            return '';
+        }
+
+        // CSV headers
+        $headers = [
+            'ID',
+            'Analysis Type',
+            'Evaluation Period',
+            'Status',
+            'Execution Time (ms)',
+            'Parameters',
+            'Results Summary',
+            'Error Message',
+            'Created At',
+            'Updated At'
+        ];
+
+        $csv = implode(',', $headers) . "\n";
+
+        foreach ($data as $row) {
+            $csvRow = [
+                $row->id,
+                $row->analysis_type_display,
+                $row->evaluation_period ?? '',
+                $row->status,
+                $row->execution_time_ms,
+                json_encode($row->parameters),
+                json_encode($row->results_summary),
+                $row->error_message ?? '',
+                $row->created_at,
+                $row->updated_at
+            ];
+
+            // Escape CSV values
+            $csvRow = array_map(function($value) {
+                if (strpos($value, ',') !== false || strpos($value, '"') !== false || strpos($value, "\n") !== false) {
+                    return '"' . str_replace('"', '""', $value) . '"';
+                }
+                return $value;
+            }, $csvRow);
+
+            $csv .= implode(',', $csvRow) . "\n";
+        }
+
+        return $csv;
+    }
+
+    /**
+     * Delete Analysis History
+     */
+    public function deleteAnalysisHistory($analysisId)
+    {
+        try {
+            $deleted = $this->historyService->deleteAnalysis($analysisId);
+
+            if ($deleted) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Analysis history deleted successfully'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete analysis history'
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Delete analysis history failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Delete failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

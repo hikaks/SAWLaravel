@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\EvaluationResult;
 use App\Models\Criteria;
+use App\Models\Evaluation;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -21,17 +22,21 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 class SawResultsExport implements WithMultipleSheets
 {
     protected $period;
+    protected $results;
+    protected $criterias;
 
-    public function __construct($period)
+    public function __construct($results, $period, $criterias)
     {
+        $this->results = $results;
         $this->period = $period;
+        $this->criterias = $criterias;
     }
 
     public function sheets(): array
     {
         return [
-            new SawRankingSheet($this->period),
-            new SawDetailSheet($this->period),
+            new SawRankingSheet($this->results, $this->period),
+            new SawDetailSheet($this->results, $this->period, $this->criterias),
             new SawCriteriaSheet($this->period)
         ];
     }
@@ -40,18 +45,17 @@ class SawResultsExport implements WithMultipleSheets
 class SawRankingSheet implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, WithEvents
 {
     protected $period;
+    protected $results;
 
-    public function __construct($period)
+    public function __construct($results, $period)
     {
+        $this->results = $results;
         $this->period = $period;
     }
 
     public function collection()
     {
-        return EvaluationResult::with('employee')
-            ->forPeriod($this->period)
-            ->orderBy('ranking')
-            ->get();
+        return $this->results;
     }
 
     public function headings(): array
@@ -71,9 +75,12 @@ class SawRankingSheet implements FromCollection, WithHeadings, WithMapping, With
 
     public function map($result): array
     {
-        $category = $result->score_percentage >= 90 ? 'Excellent' :
-                   ($result->score_percentage >= 80 ? 'Good' :
-                   ($result->score_percentage >= 70 ? 'Average' : 'Poor'));
+        // Convert decimal score to percentage (0.7369 -> 73.69)
+        $scorePercentage = $result->total_score * 100;
+
+        $category = $scorePercentage >= 90 ? 'Excellent' :
+                   ($scorePercentage >= 80 ? 'Good' :
+                   ($scorePercentage >= 70 ? 'Average' : 'Poor'));
 
         $status = $result->ranking <= 3 ? 'Top Performer' :
                  ($result->ranking <= 10 ? 'High Performer' :
@@ -86,7 +93,7 @@ class SawRankingSheet implements FromCollection, WithHeadings, WithMapping, With
             $result->employee->department,
             $result->employee->position,
             number_format($result->total_score, 4),
-            number_format($result->score_percentage, 2),
+            number_format($scorePercentage, 2),
             $category,
             $status
         ];
@@ -208,10 +215,18 @@ class SawRankingSheet implements FromCollection, WithHeadings, WithMapping, With
                 $statsRow = $lastRow + 2;
                 $results = $this->collection();
 
-                $excellentCount = $results->where('score_percentage', '>=', 90)->count();
-                $goodCount = $results->whereBetween('score_percentage', [80, 89.99])->count();
-                $averageCount = $results->whereBetween('score_percentage', [70, 79.99])->count();
-                $poorCount = $results->where('score_percentage', '<', 70)->count();
+                $excellentCount = $results->where('total_score', '>=', 0.90)->count();
+                $goodCount = $results->whereBetween('total_score', [0.80, 0.8999])->count();
+                $averageCount = $results->whereBetween('total_score', [0.70, 0.7999])->count();
+                $poorCount = $results->where('total_score', '<', 0.70)->count();
+
+                // Add period information for all-periods case
+                if ($this->period === 'all-periods') {
+                    $uniquePeriods = $results->pluck('evaluation_period')->unique()->count();
+                    $sheet->setCellValue('A' . ($statsRow - 1), 'INFORMASI PERIODE:');
+                    $sheet->setCellValue('A' . $statsRow, "Total Periode Evaluasi: {$uniquePeriods} periode");
+                    $statsRow += 2;
+                }
 
                 $sheet->setCellValue('A' . $statsRow, 'STATISTIK PERFORMANCE:');
                 $sheet->setCellValue('A' . ($statsRow + 1), 'Excellent (≥90%): ' . $excellentCount . ' orang');
@@ -230,23 +245,23 @@ class SawRankingSheet implements FromCollection, WithHeadings, WithMapping, With
 class SawDetailSheet implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, WithEvents
 {
     protected $period;
+    protected $results;
+    protected $criterias;
 
-    public function __construct($period)
+    public function __construct($results, $period, $criterias)
     {
+        $this->results = $results;
         $this->period = $period;
+        $this->criterias = $criterias;
     }
 
     public function collection()
     {
-        return EvaluationResult::with(['employee', 'employee.evaluations.criteria'])
-            ->forPeriod($this->period)
-            ->orderBy('ranking')
-            ->get();
+        return $this->results;
     }
 
     public function headings(): array
     {
-        $criterias = Criteria::orderBy('weight', 'desc')->get();
         $headers = [
             'Rank',
             'Kode',
@@ -254,7 +269,7 @@ class SawDetailSheet implements FromCollection, WithHeadings, WithMapping, WithS
             'Department'
         ];
 
-        foreach ($criterias as $criteria) {
+        foreach ($this->criterias as $criteria) {
             $headers[] = $criteria->name . ' (' . $criteria->weight . '%)';
         }
 
@@ -266,9 +281,6 @@ class SawDetailSheet implements FromCollection, WithHeadings, WithMapping, WithS
 
     public function map($result): array
     {
-        $criterias = Criteria::orderBy('weight', 'desc')->get();
-        $evaluations = $result->employee->evaluationsForPeriod($this->period)->get()->keyBy('criteria_id');
-
         $row = [
             $result->ranking,
             $result->employee->employee_code,
@@ -276,13 +288,28 @@ class SawDetailSheet implements FromCollection, WithHeadings, WithMapping, WithS
             $result->employee->department
         ];
 
-        foreach ($criterias as $criteria) {
+        // Get evaluations for this employee and period
+        if ($this->period === 'all-periods') {
+            // For all periods, get evaluations from the employee's result period
+            $evaluations = Evaluation::where('employee_id', $result->employee_id)
+                ->where('evaluation_period', $result->evaluation_period)
+                ->get()
+                ->keyBy('criteria_id');
+        } else {
+            // For specific period
+            $evaluations = Evaluation::where('employee_id', $result->employee_id)
+                ->where('evaluation_period', $this->period)
+                ->get()
+                ->keyBy('criteria_id');
+        }
+
+        foreach ($this->criterias as $criteria) {
             $evaluation = $evaluations->get($criteria->id);
             $row[] = $evaluation ? $evaluation->score : '-';
         }
 
         $row[] = number_format($result->total_score, 4);
-        $row[] = number_format($result->score_percentage, 2) . '%';
+        $row[] = number_format($result->total_score * 100, 2) . '%';
 
         return $row;
     }
@@ -391,7 +418,14 @@ class SawCriteriaSheet implements FromCollection, WithHeadings, WithMapping, Wit
     {
         static $number = 1;
 
-        $evaluations = $criteria->evaluations()->where('evaluation_period', $this->period)->get();
+        // Handle all-periods case
+        if ($this->period === 'all-periods') {
+            // Get all evaluations for this criteria across all periods
+            $evaluations = $criteria->evaluations()->get();
+        } else {
+            // Get evaluations for specific period
+            $evaluations = $criteria->evaluations()->where('evaluation_period', $this->period)->get();
+        }
 
         return [
             $number++,
@@ -460,6 +494,25 @@ class SawCriteriaSheet implements FromCollection, WithHeadings, WithMapping, Wit
                 $sheet->getStyle('C:C')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle('D:D')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle('F:I')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Add summary information for all-periods case
+                if ($this->period === 'all-periods') {
+                    $summaryRow = $lastRow + 2;
+
+                    $sheet->setCellValue('A' . $summaryRow, 'INFORMASI PERIODE:');
+                    $sheet->getStyle('A' . $summaryRow)->applyFromArray([
+                        'font' => ['bold' => true, 'size' => 12],
+                    ]);
+
+                    $summaryRow++;
+                    $sheet->setCellValue('A' . $summaryRow, 'Data kriteria ini mencakup semua periode evaluasi yang tersedia.');
+                    $summaryRow++;
+                    $sheet->setCellValue('A' . $summaryRow, 'Statistik (Min, Max, Rata-rata) dihitung dari seluruh data evaluasi.');
+
+                    $sheet->getStyle('A' . $summaryRow)->applyFromArray([
+                        'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '666666']],
+                    ]);
+                }
             }
         ];
     }

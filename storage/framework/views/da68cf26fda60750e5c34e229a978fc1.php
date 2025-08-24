@@ -246,7 +246,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="import_file" class="form-label"><?php echo e(__('Select Excel/CSV File')); ?></label>
-                        <input type="file" class="form-control" id="import_file" name="import_file" 
+                        <input type="file" class="form-control" id="import_file" name="import_file"
                                accept=".xlsx,.xls,.csv" required>
                         <div class="form-text">
                             <?php echo e(__('Supported formats: Excel (.xlsx, .xls) and CSV (.csv). Maximum file size: 10MB')); ?>
@@ -542,9 +542,9 @@ function showImportModal() {
 $('#importForm').on('submit', function(e) {
     const submitBtn = $(this).find('button[type="submit"]');
     const originalText = submitBtn.html();
-    
+
     submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i><?php echo e(__("Importing...")); ?>');
-    
+
     // Reset on form reset
     $('#importModal').on('hidden.bs.modal', function() {
         submitBtn.prop('disabled', false).html(originalText);
@@ -621,6 +621,26 @@ function viewPerformance(employeeId) {
 }
 
 function exportData() {
+    // Get current filter values
+    const department = $('#departmentFilter').val();
+    const position = $('#positionFilter').val();
+    const evaluationStatus = $('#evaluationFilter').val();
+
+    // Build query string
+    let queryParams = [];
+
+    if (department) {
+        queryParams.push('department=' + encodeURIComponent(department));
+    }
+
+    if (position) {
+        queryParams.push('position=' + encodeURIComponent(position));
+    }
+
+    if (evaluationStatus) {
+        queryParams.push('evaluation_status=' + encodeURIComponent(evaluationStatus));
+    }
+
     // Show export options
     Swal.fire({
         title: '<?php echo e(__("Export Data")); ?>',
@@ -637,10 +657,20 @@ function exportData() {
     }).then((result) => {
         if (result.isConfirmed) {
             // Export as PDF
-            window.location.href = "<?php echo e(route('employees.export')); ?>?format=pdf";
+            let pdfUrl = "<?php echo e(route('employees.export')); ?>?format=pdf";
+            if (queryParams.length > 0) {
+                pdfUrl += '&' + queryParams.join('&');
+            }
+            console.log('PDF Export URL:', pdfUrl);
+            window.location.href = pdfUrl;
         } else if (result.isDenied) {
             // Export as Excel
-            window.location.href = "<?php echo e(route('employees.export')); ?>?format=excel";
+            let excelUrl = "<?php echo e(route('employees.export')); ?>?format=excel";
+            if (queryParams.length > 0) {
+                excelUrl += '&' + queryParams.join('&');
+            }
+            console.log('Excel Export URL:', excelUrl);
+            window.location.href = excelUrl;
         }
     });
 }

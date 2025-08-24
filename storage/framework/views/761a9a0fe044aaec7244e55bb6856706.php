@@ -122,6 +122,22 @@
         </div>
     </div>
 
+    <!-- Statistics Last Updated Info -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Last updated: <span id="lastUpdated">Loading...</span>
+                </small>
+                <small class="text-muted">
+                    <i class="fas fa-sync-alt me-1" id="statsLoadingIcon"></i>
+                    Auto-refresh every 30 seconds
+                </small>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Data Table -->
     <div class="row">
         <div class="col-12">
@@ -296,7 +312,14 @@ $(document).ready(function() {
     window.currentPage = 1;
     window.perPage = 10;
 
+    // Load initial data
     loadEvaluations();
+    loadStatistics();
+
+    // Set up auto-refresh for statistics (every 30 seconds)
+    setInterval(function() {
+        loadStatistics();
+    }, 30000);
 
     // Per page change event
     $('#perPageSelect').change(function() {
@@ -364,31 +387,98 @@ function displayEvaluations(evaluations) {
 }
 
 function updateStatistics(evaluations) {
-    if (evaluations.length === 0) {
-        $('#totalEvaluations').text('0');
-        $('#avgScore').text('0');
-        $('#completionRate').text('0%');
-        $('#sawStatus').text('-');
-        return;
+    // This function is now deprecated, use loadStatistics() instead
+    // Keeping for backward compatibility
+    loadStatistics();
+}
+
+function loadStatistics() {
+    // Show loading indicator
+    $('#statsLoadingIcon').addClass('fa-spin');
+    
+    $.ajax({
+        url: "<?php echo e(route('evaluations.statistics')); ?>",
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        xhrFields: {
+            withCredentials: true
+        },
+        success: function(response) {
+            if (response.success && response.data) {
+                const stats = response.data;
+                
+                // Update statistics cards
+                $('#totalEvaluations').text(stats.total_evaluations.toLocaleString());
+                $('#avgScore').text(stats.average_score);
+                $('#completionRate').text(stats.completion_rate + '%');
+                $('#sawStatus').text(stats.saw_status);
+                
+                // Update last updated timestamp
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                $('#lastUpdated').text(timeString);
+                
+                // Add visual indicators based on values
+                updateStatisticsVisuals(stats);
+                
+                console.log('Statistics updated:', stats);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Failed to load statistics:', error);
+            // Set default values on error
+            $('#totalEvaluations').text('0');
+            $('#avgScore').text('0');
+            $('#completionRate').text('0%');
+            $('#sawStatus').text('Error');
+            $('#lastUpdated').text('Error loading');
+        },
+        complete: function() {
+            // Hide loading indicator
+            $('#statsLoadingIcon').removeClass('fa-spin');
+        }
+    });
+}
+
+function updateStatisticsVisuals(stats) {
+    // Update completion rate color based on percentage
+    const completionCard = $('#completionRate').closest('.card');
+    completionCard.removeClass('border-left-warning border-left-success border-left-danger');
+    
+    if (stats.completion_rate >= 80) {
+        completionCard.addClass('border-left-success');
+    } else if (stats.completion_rate >= 50) {
+        completionCard.addClass('border-left-warning');
+    } else {
+        completionCard.addClass('border-left-danger');
     }
-
-    $('#totalEvaluations').text(evaluations.length);
-
-    // Calculate average score
-    const scores = evaluations.map(e => parseFloat(e.score) || 0).filter(s => s > 0);
-    const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
-    $('#avgScore').text(avgScore);
-
-    // Calculate completion rate (assuming 100% if data exists)
-    $('#completionRate').text('100%');
-
-    // SAW status
-    $('#sawStatus').text('Ready');
+    
+    // Update SAW status color
+    const sawCard = $('#sawStatus').closest('.card');
+    sawCard.removeClass('border-left-info border-left-success border-left-warning');
+    
+    if (stats.saw_status === 'Calculated') {
+        sawCard.addClass('border-left-success');
+    } else if (stats.saw_status === 'Ready') {
+        sawCard.addClass('border-left-warning');
+    } else {
+        sawCard.addClass('border-left-info');
+    }
 }
 
 function refreshTable() {
     window.currentPage = 1; // Reset to first page
     loadEvaluations();
+    loadStatistics(); // Also refresh statistics
 }
 
 function showImportModal() {
